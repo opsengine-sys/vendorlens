@@ -1553,7 +1553,7 @@ function renderComparison(dA,dB){
     </div>
   </div>
 
-  <div class="disc" style="margin-top:3px">⚖️ Comparison is based on publicly available information scraped at assessment time. Independently verify all compliance claims with each vendor before making procurement decisions. <button class="cbtn" onclick="exportComparisonCSV()" style="margin-left:8px">⬇ Export CSV</button></div>`;
+  <div class="disc" style="margin-top:3px;display:flex;align-items:center;flex-wrap:wrap;gap:8px">⚖️ Comparison is based on publicly available information scraped at assessment time. Independently verify all compliance claims with each vendor before making procurement decisions.<span style="display:flex;gap:6px;margin-left:auto"><button class="cbtn" onclick="exportComparisonCSV()">⬇ Export CSV</button><button class="cbtn" style="background:var(--ink);color:#fff;border-color:var(--ink)" onclick="exportComparisonPDF()">📄 Export PDF</button></span></div>`;
 }
 
 function renderSingleFromCompare(){
@@ -1579,6 +1579,191 @@ function exportComparisonCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`compare-${nameA.replace(/\s+/g,'-')}-vs-${nameB.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();URL.revokeObjectURL(a.href);
+}
+
+function exportComparisonPDF(){
+  if(!gData||!gDataB){alert('Run a comparison first.');return;}
+  const dA=gData,dB=gDataB;
+  const nameA=dA._meta?.vendor_queried||'Vendor A';
+  const nameB=dB._meta?.vendor_queried||'Vendor B';
+  const scoreA=Math.max(0,Math.min(100,parseInt(dA.scores?.overall)||0));
+  const scoreB=Math.max(0,Math.min(100,parseInt(dB.scores?.overall)||0));
+  const scoreCol=s=>s>=80?'#15803d':s>=60?'#16a34a':s>=40?'#d97706':s>=20?'#ea580c':'#dc2626';
+  const domains=[{k:'legal_financial',l:'Legal & Financial',w:'10%'},{k:'compliance',l:'Compliance',w:'20%'},{k:'security',l:'Security',w:'25%'},{k:'privacy_data',l:'Privacy & Data',w:'15%'},{k:'access_risk',l:'Access Risk',w:'25%'},{k:'operational',l:'Operational',w:'5%'}];
+  const gradeOrder={A:5,B:4,C:3,D:2,F:1,NA:0};
+  const GC={A:'#15803d',B:'#16a34a',C:'#d97706',D:'#ea580c',F:'#dc2626',NA:'#999'};
+  const certMap=[['soc2_type2','SOC 2 Type II'],['soc2_type1','SOC 2 Type I'],['iso_27001','ISO 27001'],['iso_27701','ISO 27701 (Privacy)'],['iso_27017','ISO 27017 (Cloud)'],['iso_27018','ISO 27018 (PII)'],['hipaa_baa_available','HIPAA BAA'],['pci_dss','PCI DSS'],['fedramp','FedRAMP'],['gdpr_compliant','GDPR Compliant'],['ccpa_compliant','CCPA Compliant'],['csa_star','CSA STAR'],['nist_csf','NIST CSF']];
+  const certOk=v=>v===true||(typeof v==='string'&&/yes|certified|compliant|available/i.test(v));
+  const certUnk=v=>v===null||v===undefined;
+  const fv=v=>{if(v===null||v===undefined)return '<span style="color:#aaa;font-size:10px">Unknown</span>';if(v===true||/^yes$/i.test(String(v).trim()))return '<span style="color:#15803d;font-weight:600">Yes ✓</span>';if(v===false||/^no$/i.test(String(v).trim()))return '<span style="color:#dc2626">No</span>';return String(v).slice(0,55);};
+  const metrics=[{l:'DPA Available',a:dA.privacy_data?.dpa_available,b:dB.privacy_data?.dpa_available},{l:'Encryption in Transit',a:dA.security?.encryption_in_transit,b:dB.security?.encryption_in_transit},{l:'Encryption at Rest',a:dA.security?.encryption_at_rest,b:dB.security?.encryption_at_rest},{l:'MFA Enforced',a:dA.security?.mfa_enforced,b:dB.security?.mfa_enforced},{l:'SSO Supported',a:dA.security?.sso_supported,b:dB.security?.sso_supported},{l:'Bug Bounty Program',a:dA.security?.bug_bounty_program,b:dB.security?.bug_bounty_program},{l:'Incident Response Plan',a:dA.security?.incident_response_plan,b:dB.security?.incident_response_plan},{l:'SOC 2 Type II',a:dA.compliance?.soc2_type2,b:dB.compliance?.soc2_type2},{l:'ISO 27001',a:dA.compliance?.iso_27001,b:dB.compliance?.iso_27001},{l:'ISO 27701',a:dA.compliance?.iso_27701,b:dB.compliance?.iso_27701},{l:'GDPR Compliant',a:dA.compliance?.gdpr_compliant,b:dB.compliance?.gdpr_compliant},{l:'Right to Deletion',a:dA.privacy_data?.right_to_deletion,b:dB.privacy_data?.right_to_deletion},{l:'Subprocessors Listed',a:dA.access_risk?.subprocessors_with_data_access,b:dB.access_risk?.subprocessors_with_data_access},{l:'Data Retention Policy',a:dA.access_risk?.data_retention_policy,b:dB.access_risk?.data_retention_policy},{l:'Multi-region Redundancy',a:dA.operational?.multi_region_redundancy,b:dB.operational?.multi_region_redundancy}];
+  const flagRows=(flags,name)=>(flags||[]).length?flags.map(f=>`<tr><td style="width:70px;color:${f.severity==='red'?'#dc2626':f.severity==='green'?'#15803d':'#d97706'};font-weight:600;font-size:11px">${f.severity?.toUpperCase()||'NOTE'}</td><td style="font-weight:600;font-size:12px">${f.title||''}</td><td style="font-size:11px;color:#555">${f.detail||''}</td></tr>`).join(''):`<tr><td colspan="3" style="color:#aaa;font-size:12px;font-style:italic">No flags raised.</td></tr>`;
+  const dateStr=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>VendorLens — ${nameA} vs ${nameB}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:0}
+  @page{size:A4;margin:16mm 14mm 16mm 14mm}
+  @media print{body{padding:0}.no-print{display:none!important}html{font-size:11px}}
+  .page{max-width:760px;margin:0 auto;padding:24px}
+  /* Header */
+  .hd{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:2px solid #111;margin-bottom:18px}
+  .hd-brand{display:flex;align-items:center;gap:10px}
+  .hd-logo{width:30px;height:30px;background:linear-gradient(135deg,#166534,#15803d);border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .hd-logo svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2}
+  .hd-title{font-size:18px;font-weight:800;letter-spacing:-.03em}
+  .hd-title span{color:#15803d}
+  .hd-meta{font-size:10px;color:#666;text-align:right;line-height:1.6}
+  /* Score card */
+  .score-grid{display:grid;grid-template-columns:1fr 56px 1fr;gap:12px;margin-bottom:16px;align-items:start}
+  .score-card{border:1.5px solid #e5e7eb;border-radius:10px;padding:16px;text-align:center;background:#fafafa}
+  .score-card.winner{border-color:#15803d;background:#f0fdf4}
+  .score-name{font-size:14px;font-weight:800;letter-spacing:-.02em;margin-bottom:2px}
+  .score-domain{font-size:10px;color:#888;font-family:monospace;margin-bottom:10px}
+  .score-num{font-size:40px;font-weight:900;line-height:1;letter-spacing:-.03em}
+  .score-sub{font-size:10px;color:#666;margin-top:4px}
+  .score-win{font-size:10px;color:#15803d;font-weight:600;margin-top:6px;padding:2px 8px;border:1px solid #bbf7d0;border-radius:100px;display:inline-block;background:#dcfce7}
+  .vs-col{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding-top:20px}
+  .vs-bubble{width:38px;height:38px;border-radius:50%;border:1.5px solid #e5e7eb;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#888}
+  .vs-lbl{font-size:9px;color:#aaa;font-family:monospace;text-align:center;line-height:1.4}
+  /* Sections */
+  .sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#374151;padding:10px 0 6px;border-bottom:1.5px solid #e5e7eb;margin-bottom:0}
+  table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px}
+  th{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;padding:6px 10px;border-bottom:1.5px solid #e5e7eb;font-weight:600;text-align:left;background:#f9fafb}
+  th:not(:first-child){text-align:center}
+  td{padding:6px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle;color:#374151}
+  td:not(:first-child){text-align:center}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#fafafa}
+  tr.both td{background:#f0fdf4}
+  .grade{font-size:14px;font-weight:800;font-family:monospace}
+  .edge{font-size:10px;color:#15803d;font-weight:600}
+  .cert-ok{color:#15803d;font-weight:700;font-size:13px}
+  .cert-no{color:#d1d5db;font-size:13px}
+  .cert-unk{color:#d1d5db;font-size:10px;font-family:monospace}
+  /* Flags */
+  .flags-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  .flags-col-title{font-size:11px;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #e5e7eb;color:#374151}
+  .flags-table{width:100%;border-collapse:collapse;font-size:11px}
+  .flags-table td{padding:4px 6px;border-bottom:1px dotted #f3f4f6;vertical-align:top}
+  /* Footer */
+  .footer{margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:9px;color:#9ca3af}
+  .page-break{page-break-before:always}
+  .print-btn{position:fixed;bottom:20px;right:20px;background:#111;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px}
+  .print-btn:hover{background:#333}
+  @media print{.print-btn{display:none}}
+</style></head><body>
+<div class="page">
+
+  <div class="hd">
+    <div class="hd-brand">
+      <div class="hd-logo"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/></svg></div>
+      <div>
+        <div class="hd-title">Vendor<span>Lens</span></div>
+        <div style="font-size:9px;color:#888;letter-spacing:.05em;text-transform:uppercase">Enterprise Procurement Intelligence</div>
+      </div>
+    </div>
+    <div class="hd-meta">
+      <div style="font-size:14px;font-weight:700;color:#111;letter-spacing:-.02em">${nameA} vs ${nameB}</div>
+      <div>Vendor Comparison Report · ${dateStr}</div>
+      <div>AI Provider: ${dA._meta?.ai_provider||'N/A'} · Model: ${dA._meta?.ai_model||'N/A'}</div>
+    </div>
+  </div>
+
+  <!-- SCORE OVERVIEW -->
+  <div class="sec-title">Overall Assessment Scores</div>
+  <div class="score-grid" style="margin-top:10px">
+    <div class="score-card ${scoreA>=scoreB?'winner':''}">
+      <div class="score-name">${nameA}</div>
+      <div class="score-domain">${dA._meta?.domain||''}</div>
+      <div class="score-num" style="color:${scoreCol(scoreA)}">${scoreA}</div>
+      <div class="score-sub">${dA.verdict?.risk_tier||''} Risk · ${dA.verdict?.recommendation||''}</div>
+      ${scoreA>scoreB?`<div class="score-win">▲ Higher Score · +${scoreA-scoreB} pts</div>`:''}
+    </div>
+    <div class="vs-col">
+      <div class="vs-bubble">VS</div>
+      <div class="vs-lbl">${scoreA>scoreB?nameA.split(' ')[0]+'\nleads':scoreB>scoreA?nameB.split(' ')[0]+'\nleads':'Tied'}</div>
+    </div>
+    <div class="score-card ${scoreB>scoreA?'winner':''}">
+      <div class="score-name">${nameB}</div>
+      <div class="score-domain">${dB._meta?.domain||''}</div>
+      <div class="score-num" style="color:${scoreCol(scoreB)}">${scoreB}</div>
+      <div class="score-sub">${dB.verdict?.risk_tier||''} Risk · ${dB.verdict?.recommendation||''}</div>
+      ${scoreB>scoreA?`<div class="score-win">▲ Higher Score · +${scoreB-scoreA} pts</div>`:''}
+    </div>
+  </div>
+
+  <!-- DOMAIN GRADES -->
+  <div class="sec-title">Domain Grade Comparison</div>
+  <table>
+    <thead><tr><th>Domain</th><th>${nameA}</th><th>${nameB}</th><th>Edge</th><th>Weight</th></tr></thead>
+    <tbody>
+      ${domains.map(({k,l,w})=>{
+        const gA=dA.scores?.[k]||'NA',gB=dB.scores?.[k]||'NA';
+        const oA=gradeOrder[gA]||0,oB=gradeOrder[gB]||0;
+        const edge=oA>oB?`<span class="edge">▲ ${nameA.split(' ')[0]}</span>`:oB>oA?`<span class="edge">▲ ${nameB.split(' ')[0]}</span>`:'<span style="color:#d1d5db">—</span>';
+        return `<tr><td style="font-weight:500">${l}</td><td><span class="grade" style="color:${GC[gA]||'#999'}">${gA}</span></td><td><span class="grade" style="color:${GC[gB]||'#999'}">${gB}</span></td><td>${edge}</td><td style="color:#9ca3af;font-family:monospace;font-size:10px">${w}</td></tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <!-- CERTIFICATION DIFF -->
+  <div class="sec-title">Certification Comparison</div>
+  <table>
+    <thead><tr><th>Certification</th><th>${nameA}</th><th>${nameB}</th><th>Status</th></tr></thead>
+    <tbody>
+      ${certMap.map(([k,label])=>{
+        const vA=dA.compliance?.[k],vB=dB.compliance?.[k];
+        const okA=certOk(vA),okB=certOk(vB),uA=certUnk(vA),uB=certUnk(vB);
+        const status=okA&&okB?'<span style="color:#15803d;font-weight:600;font-size:10px">Both ✓</span>':okA&&!okB?`<span style="color:#d97706;font-size:10px">${nameA.split(' ')[0]} only</span>`:!okA&&okB?`<span style="color:#d97706;font-size:10px">${nameB.split(' ')[0]} only</span>`:`<span style="color:#d1d5db;font-size:10px">Neither</span>`;
+        return `<tr${okA&&okB?' class="both"':''}><td>${label}</td><td>${uA?'<span class="cert-unk">?</span>':okA?'<span class="cert-ok">✓</span>':'<span class="cert-no">✗</span>'}</td><td>${uB?'<span class="cert-unk">?</span>':okB?'<span class="cert-ok">✓</span>':'<span class="cert-no">✗</span>'}</td><td>${status}</td></tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <!-- KEY METRICS -->
+  <div class="sec-title">Key Security &amp; Privacy Metrics</div>
+  <table>
+    <thead><tr><th>Metric</th><th>${nameA}</th><th>${nameB}</th></tr></thead>
+    <tbody>
+      ${metrics.map(({l,a,b})=>`<tr><td style="color:#374151;font-size:11px">${l}</td><td>${fv(a)}</td><td>${fv(b)}</td></tr>`).join('')}
+    </tbody>
+  </table>
+
+  <!-- FLAGS -->
+  <div class="sec-title" style="margin-bottom:8px">Risk Flags</div>
+  <div class="flags-grid">
+    <div>
+      <div class="flags-col-title">${nameA} <span style="color:#9ca3af;font-weight:400;font-size:10px">(${(dA.flags||[]).length} flags)</span></div>
+      <table class="flags-table"><tbody>${flagRows(dA.flags,nameA)}</tbody></table>
+    </div>
+    <div>
+      <div class="flags-col-title">${nameB} <span style="color:#9ca3af;font-weight:400;font-size:10px">(${(dB.flags||[]).length} flags)</span></div>
+      <table class="flags-table"><tbody>${flagRows(dB.flags,nameB)}</tbody></table>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>Generated by VendorLens · ${dateStr}</span>
+    <span>Based on publicly available information only. Independently verify all compliance claims.</span>
+    <span>Assessment IDs: ${dA._meta?.assessment_task_id||'—'} / ${dB._meta?.assessment_task_id||'—'}</span>
+  </div>
+
+</div>
+<button class="print-btn no-print" onclick="window.print()">
+  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+  Save as PDF
+</button>
+</body></html>`;
+
+  const win=window.open('','_blank','width=860,height=950,scrollbars=yes');
+  if(!win){alert('Pop-up blocked — please allow pop-ups for this site.');return;}
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),800);
 }
 
 async function run(){
