@@ -62,6 +62,24 @@ body{font-family:'DM Sans',sans-serif;background:#eef7f2;color:#091c11;min-heigh
 .ksave{background:var(--g1);color:#fff;border:none;border-radius:var(--rxs);padding:9px 15px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s}
 .ksave:hover{background:#128f3c}
 .mnote{font-size:11px;color:var(--ink4);background:var(--s2);border:1px solid var(--e);border-radius:var(--rxs);padding:9px 12px;line-height:1.6}
+.tc-row{display:flex;align-items:center;gap:10px;margin:12px 0 0}
+.tc-btn{display:flex;align-items:center;gap:6px;background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rxs);padding:7px 14px;font-size:12px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tc-btn:hover:not(:disabled){border-color:var(--g1);color:var(--g1)}
+.tc-btn:disabled{opacity:.5;cursor:not-allowed}
+.tc-btn svg{flex-shrink:0}
+.tc-btn.running svg{animation:spin .75s linear infinite}
+.tc-latency{font-size:11px;font-family:'DM Mono',monospace;color:var(--g1);font-weight:600}
+.tc-result{margin-top:8px;border:1.5px solid var(--e);border-radius:var(--rxs);overflow:hidden;animation:mslide .15s ease}
+.tc-result.ok{border-color:rgba(21,163,74,.4)}
+.tc-result.err{border-color:rgba(220,38,38,.35)}
+.tc-result-hdr{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--s2);font-size:12px;font-weight:500}
+.tc-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tc-status-dot.ok{background:#16a34a;box-shadow:0 0 0 2px #dcfce7}
+.tc-status-dot.err{background:#dc2626;box-shadow:0 0 0 2px #fee2e2}
+.tc-status-dot.running{background:#f59e0b;box-shadow:0 0 0 2px #fef3c7;animation:blink 1s infinite}
+.tc-close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--ink4);font-size:13px;padding:0 2px;line-height:1}
+.tc-close:hover{color:var(--ink)}
+.tc-reply{padding:10px 12px;font-size:11.5px;font-family:'DM Mono',monospace;color:var(--ink2);line-height:1.6;border-top:1px solid var(--e);white-space:pre-wrap;word-break:break-word;max-height:90px;overflow-y:auto;background:var(--s)}
 .scraper-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--e)}
 .scraper-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .scraper-hdr>span:first-child{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
@@ -927,6 +945,92 @@ function updateTopbar(){
   const ol=localStorage.getItem('vl_ollama_ep');
   if(ol)PROVS.ollama.ep=ol+'/v1/chat/completions';
 })();
+
+// ═══════════════════════════════
+// TEST CONNECTION
+// ═══════════════════════════════
+async function testConnection(){
+  const btn=document.getElementById('tcBtn');
+  const latEl=document.getElementById('tcLatency');
+  const result=document.getElementById('tcResult');
+  const dot=document.getElementById('tcDot');
+  const statusEl=document.getElementById('tcStatus');
+  const replyEl=document.getElementById('tcReply');
+
+  // Snapshot current key/model from modal inputs (not just saved values)
+  const liveKey=(document.getElementById('kInput')?.value.trim())||gKey(curProv);
+  const liveModel=document.getElementById('msel')?.value||curModel;
+
+  if(!liveKey&&curProv!=='ollama'){
+    result.className='tc-result err'; result.style.display='block';
+    dot.className='tc-status-dot err'; statusEl.textContent='No API key — paste a key first';
+    replyEl.style.display='none'; latEl.style.display='none'; return;
+  }
+
+  // Set running state
+  btn.disabled=true; btn.classList.add('running');
+  latEl.style.display='none';
+  result.style.display='block'; result.className='tc-result';
+  dot.className='tc-status-dot running'; statusEl.textContent=`Connecting to ${PROVS[curProv].name}…`;
+  replyEl.style.display='none';
+
+  // Use a lightweight prompt — just enough to confirm the model responds
+  const PING='Reply with exactly: OK';
+  const t0=Date.now();
+
+  try{
+    // Temporarily override curProv settings with live modal values so callAI uses them
+    const savedKey=localStorage.getItem('vl_k_'+curProv);
+    const savedModel=curModel;
+    if(liveKey)localStorage.setItem('vl_k_'+curProv,liveKey);
+    curModel=liveModel;
+
+    // Save azure/ollama extras from modal before testing
+    if(curProv==='azure'){
+      const ep=document.getElementById('azureEpInput')?.value.trim().replace(/\/+$/,'');
+      const dep=document.getElementById('azureDepInput')?.value.trim();
+      if(ep)localStorage.setItem('vl_azure_ep',ep);
+      if(dep)localStorage.setItem('vl_azure_dep',dep);
+    }
+    if(curProv==='ollama'){
+      const ol=document.getElementById('ollamaEpInput')?.value.trim().replace(/\/+$/,'');
+      if(ol){localStorage.setItem('vl_ollama_ep',ol);PROVS.ollama.ep=ol+'/v1/chat/completions';}
+    }
+
+    const reply=await callAI(PING,64,0);
+    const ms=Date.now()-t0;
+
+    // Restore
+    if(savedKey)localStorage.setItem('vl_k_'+curProv,savedKey);
+    else if(!liveKey)localStorage.removeItem('vl_k_'+curProv);
+    curModel=savedModel;
+
+    const msLabel=ms<1000?`${ms}ms`:`${(ms/1000).toFixed(1)}s`;
+    latEl.textContent=msLabel; latEl.style.display='inline';
+    result.className='tc-result ok';
+    dot.className='tc-status-dot ok';
+    statusEl.textContent=`${PROVS[curProv].name} · ${liveModel} — connected`;
+    replyEl.textContent=reply.trim().slice(0,200)||(reply?reply:'(empty response)');
+    replyEl.style.display='block';
+  }catch(err){
+    const ms=Date.now()-t0;
+    latEl.textContent=`${ms}ms`; latEl.style.display='inline';
+    result.className='tc-result err';
+    dot.className='tc-status-dot err';
+    // Friendly error classification
+    let msg=err.message||String(err);
+    if(/401|unauthorized|invalid.*key|api.key/i.test(msg))msg='Invalid API key — check you pasted it correctly.';
+    else if(/403|forbidden/i.test(msg))msg='Access denied — key may lack required permissions.';
+    else if(/429|rate.limit/i.test(msg))msg='Rate limited — wait a moment and try again.';
+    else if(/timeout|upstream/i.test(msg))msg='Request timed out — provider may be slow or unreachable.';
+    else if(/CORS|network|fetch/i.test(msg))msg='Network/CORS error — using proxy route failed too.';
+    else if(/deployment|resource/i.test(msg)&&curProv==='azure')msg='Azure config error — check Resource URL and Deployment name.';
+    statusEl.textContent=`Failed: ${msg}`;
+    replyEl.style.display='none';
+  }finally{
+    btn.disabled=false; btn.classList.remove('running');
+  }
+}
 
 // ═══════════════════════════════
 // CUSTOM SCRAPER
