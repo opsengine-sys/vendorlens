@@ -389,8 +389,6 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
       </div>
       <div class="mrow"><label>Model</label><select id="msel"></select></div>
       <div class="krow"><input type="password" id="kInput" placeholder="Paste API key…" autocomplete="off"/><button class="ksave" onclick="saveKey()">Save</button></div>
-      <div class="mrow"><label>Open-source LLM scraper endpoint</label><input type="text" id="scraperInput" placeholder="http://localhost:11235 (Crawl4AI)" autocomplete="off" spellcheck="false"/><button class="ksave" onclick="testScraperEndpoint()">Test</button></div>
-      <div class="mnote">Optional: run Crawl4AI locally and enter its base URL here. VendorLens will use it first, then fall back to browser proxy scraping.</div>
       <div class="mnote" id="mnote"></div>
     </div>
   </div>
@@ -433,7 +431,6 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
         <div class="fl"><label>Vendor B Product / Service <span style="color:var(--blu)">*</span></label><input type="text" id="p2Input" placeholder="e.g. BambooHR HRIS" autocomplete="off" spellcheck="false"/></div>
       </div>
     </div>
-    <div class="wkbar"><span class="wkchip">Workato</span><span>Auto-fill: <code>?vendor=Workday&amp;product=HCM&amp;autorun=1</code> or <code>window.WORKATO_PAYLOAD = {vendor, product, autorun:true}</code></span></div>
   </div>
 
   <div class="compare-run-row" id="compareRunRow">
@@ -668,7 +665,6 @@ let curModel = localStorage.getItem('vl_m')  || PROVS.groq.def;
 let gData    = null;
 let gLogoUrl = null;
 const gKey = p => localStorage.getItem('vl_k_'+p)||'';
-const getScraperEndpoint = () => (localStorage.getItem('vl_scraper_endpoint')||'').trim().replace(/\/$/,'');
 
 // Vector store for scraped content
 let vectorStore = [];
@@ -700,41 +696,15 @@ function refreshModal(){
   Object.keys(PROVS).forEach(k=>document.getElementById('pc-'+k)?.classList.toggle('on',k===curProv));
   document.getElementById('msel').innerHTML=PROVS[curProv].models.map(m=>`<option value="${m}" ${m===curModel?'selected':''}>${m}</option>`).join('');
   document.getElementById('kInput').value=gKey(curProv);
-  document.getElementById('scraperInput').value=getScraperEndpoint();
   document.getElementById('mnote').innerHTML=PROVS[curProv].note||'';
 }
 function saveKey(){
   const k=document.getElementById('kInput').value.trim();
-  const scraper=document.getElementById('scraperInput').value.trim().replace(/\/$/,'');
+  if(!k&&!gKey(curProv)){alert('Paste your API key to continue.');return;}
   if(k)localStorage.setItem('vl_k_'+curProv,k);
-  if(!k&&!gKey(curProv)&&!scraper){alert('Enter an AI key or scraper endpoint.');return;}
   localStorage.setItem('vl_p',curProv);
   localStorage.setItem('vl_m',document.getElementById('msel').value);
-  if(scraper)localStorage.setItem('vl_scraper_endpoint',scraper);else localStorage.removeItem('vl_scraper_endpoint');
   curModel=document.getElementById('msel').value; updateTopbar(); closeModal('ai');
-}
-async function testScraperEndpoint(){
-  const input=document.getElementById('scraperInput');
-  const note=document.getElementById('mnote');
-  const endpoint=input.value.trim().replace(/\/$/,'');
-  if(!endpoint){note.textContent='Enter a Crawl4AI endpoint such as http://localhost:11235.';return;}
-  note.textContent='Testing scraper endpoint…';
-  try{
-    const r=await fetch(endpoint+'/health',{signal:AbortSignal.timeout(6000)});
-    if(r.ok){
-      let health={};
-      try{health=await r.json();}catch(e){}
-      if(health.proxy&&health.targetReachable===false){
-        note.textContent='Proxy is reachable, but Crawl4AI is not running at '+(health.target||'the configured target')+'. Start Crawl4AI first, then test again.';
-        return;
-      }
-      note.textContent='Scraper reachable. Save settings, then run the assessment.';
-      return;
-    }
-    note.textContent='Endpoint responded, but /health returned HTTP '+r.status+'. The /crawl endpoint may still work.';
-  }catch(e){
-    note.textContent='Scraper test failed: '+friendlyScraperError(e)+'. If Crawl4AI is running, this is usually CORS or mixed-content blocking from the browser.';
-  }
 }
 function updateTopbar(){
   const k=gKey(curProv);
@@ -748,21 +718,31 @@ document.addEventListener('click',e=>{if(!e.target.closest('.legend-wrap'))docum
 // ═══════════════════════════════
 // SCRAPING
 // ═══════════════════════════════
-const PROXIES=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`];
+// Proxy chain: Jina AI Reader first (returns clean markdown — no parsing needed),
+// then browser CORS proxies as fallback.
+const PROXIES=[
+  u=>`https://r.jina.ai/${u}`,
+  u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+];
 async function fetchProxy(url,pi=0){
   if(pi>=PROXIES.length)throw new Error('proxy_fail');
   try{
-    const r=await fetch(PROXIES[pi](url),{signal:AbortSignal.timeout(10000)});
+    const r=await fetch(PROXIES[pi](url),{signal:AbortSignal.timeout(12000)});
     if(!r.ok)throw new Error('proxy_http_'+r.status);
     const body=await r.text();
-    try{
-      const d=JSON.parse(body);
-      if(d.status?.http_code&&d.status.http_code>=400)throw new Error('target_http_'+d.status.http_code);
-      return d.contents||d.data||body||'';
-    }catch(e){
-      if(/^target_http_/.test(e.message))throw e;
-      return body||'';
+    // Jina returns plain text/markdown — detect by checking if it starts with JSON
+    if(body.trimStart().startsWith('{')||body.trimStart().startsWith('[')){
+      try{
+        const d=JSON.parse(body);
+        if(d.status?.http_code&&d.status.http_code>=400)throw new Error('target_http_'+d.status.http_code);
+        return d.contents||d.data||body||'';
+      }catch(e){
+        if(/^target_http_/.test(e.message))throw e;
+      }
     }
+    return body||'';
   }
   catch(e){return fetchProxy(url,pi+1);}
 }
@@ -897,8 +877,7 @@ function friendlyScraperError(e){
   return msg;
 }
 async function scrapeWithLLMScraper(pages){
-  const endpoint=getScraperEndpoint();
-  if(!endpoint)return null;
+  return null;
   const out=[];
   const errors=[];
   for(const page of pages){
@@ -1015,68 +994,61 @@ async function scrape(vendor){
   const srcs=document.getElementById('ssrcs'); srcs.innerHTML='';
   priorityPages.forEach(p=>{const c=document.createElement('span');c.className='ssrc';c.id='ss-'+p.id;c.textContent=p.id;srcs.appendChild(c);});
   const results=[];
-  let usedLLMScraper=false;
-  const endpoint=getScraperEndpoint();
 
-  // Layer 1: URL pre-validation — HEAD check every candidate URL before committing to full scrape
-  logCrawl('(start)','init',0,`Pre-validating ${priorityPages.length} candidate URLs for ${domain}`);
+  // Layer 1: URL pre-validation — parallel HEAD checks (much faster than sequential)
+  logCrawl('(start)','init',0,`Pre-validating ${priorityPages.length} candidate URLs for ${domain} in parallel`);
+  const checkResults=await Promise.all(priorityPages.map(pg=>headCheck(pg.url)));
   const validPages=[];
-  for(const pg of priorityPages){
+  priorityPages.forEach((pg,i)=>{
+    const check=checkResults[i];
     const chip=document.getElementById('ss-'+pg.id);
-    if(chip)chip.title='Checking…';
-    const check=await headCheck(pg.url);
     if(check.ok){
       validPages.push({...pg,_preHtml:check.html});
       logCrawl(pg.url,'reachable',check.chars);
     }else{
       logCrawl(pg.url,'404/unavailable',0,check.note||`HTTP ${check.status}`);
       if(chip)chip.classList.add('fail');
-      if(chip)chip.title=`HTTP ${check.status} — page not found`;
+      if(chip)chip.title=`HTTP ${check.status} — not found`;
     }
-  }
+  });
   logCrawl('(validate)','done',0,`${validPages.length}/${priorityPages.length} URLs reachable`);
 
-  try{
-    const llmResults=endpoint?await scrapeWithLLMScraper(validPages):null;
-    if(llmResults?.length){
-      usedLLMScraper=true;
-      llmResults.forEach(r=>{
-        results.push(r);
-        logCrawl(r.url,'scraped-llm',r.txt.length);
-        const chip=document.getElementById('ss-'+r.src);
-        if(chip)chip.classList.add('done');
-      });
-      validPages.filter(p=>!llmResults.some(r=>r.url===p.url)).forEach(p=>{
-        logCrawl(p.url,'llm-skipped',0);
-        document.getElementById('ss-'+p.id)?.classList.add('fail');
-      });
+  // Fallback: if all head-checks failed (proxy outage, obscure domain, wrong TLD),
+  // brute-force fetch the homepage directly so the assessment isn't silently blocked.
+  if(!validPages.length&&!endpoint){
+    logCrawl(`https://${domain}`,'homepage-fallback-attempt',0,'All head-checks failed — trying direct proxy fetch');
+    try{
+      const html=await fetchProxy(`https://${domain}`);
+      const txt=cleanHtml(html);
+      if(txt.length>120&&!looksLikeMissingPage(txt)){
+        validPages.push({id:'Home',url:`https://${domain}`,_preHtml:html});
+        logCrawl(`https://${domain}`,'homepage-fallback-ok',txt.length,'Fetched despite head-check failure');
+        const chip=document.getElementById('ss-Home');
+        if(chip){chip.classList.remove('fail');chip.classList.add('done');}
+      }else{
+        logCrawl(`https://${domain}`,'homepage-fallback-empty',txt.length,'Looks like 404 or empty');
+      }
+    }catch(e){
+      logCrawl(`https://${domain}`,'homepage-fallback-failed',0,e.message||String(e));
     }
-  }catch(e){
-    const c=document.createElement('span');c.className='ssrc fail';c.textContent='Open-source scraper failed';srcs.appendChild(c);
-    c.title=e.message||String(e);
-    logCrawl('(llm-scraper)','error',0,e.message||String(e));
-    if(endpoint)throw e;
   }
 
-  if(!usedLLMScraper){
-    if(endpoint)throw new Error('Open-source scraper returned no usable pages. Check the endpoint test, proxy console, and Crawl4AI container logs.');
-    for(const pg of validPages){
-      const chip=document.getElementById('ss-'+pg.id);
-      try{
-        const html=pg._preHtml||await fetchProxy(pg.url);
-        const txt=cleanHtml(html);
-        if(txt.length>150&&!looksLikeMissingPage(txt)){
-          results.push({src:pg.id,url:pg.url,txt,links:extractLinks(html,pg.url),verified:true,scraper:'proxy'});
-          logCrawl(pg.url,'scraped-proxy',txt.length);
-          if(chip)chip.classList.add('done');
-        }else{
-          logCrawl(pg.url,'empty-content',txt.length,'content too short or looks like error page');
-          if(chip)chip.classList.add('fail');
-        }
-      }catch(e){
-        logCrawl(pg.url,'fetch-error',0,e.message||String(e));
+  for(const pg of validPages){
+    const chip=document.getElementById('ss-'+pg.id);
+    try{
+      const html=pg._preHtml||await fetchProxy(pg.url);
+      const txt=cleanHtml(html);
+      if(txt.length>150&&!looksLikeMissingPage(txt)){
+        results.push({src:pg.id,url:pg.url,txt,links:[...extractLinks(html,pg.url),...extractMarkdownLinks(html,pg.url)],verified:true,scraper:'jina'});
+        logCrawl(pg.url,'scraped',txt.length);
+        if(chip)chip.classList.add('done');
+      }else{
+        logCrawl(pg.url,'empty-content',txt.length,'content too short or looks like error page');
         if(chip)chip.classList.add('fail');
       }
+    }catch(e){
+      logCrawl(pg.url,'fetch-error',0,e.message||String(e));
+      if(chip)chip.classList.add('fail');
     }
   }
 
@@ -1096,39 +1068,23 @@ async function scrape(vendor){
     else{logCrawl(l.url,'discovered-404',0,check.note||`HTTP ${check.status}`);document.getElementById('ss-'+l.chipId)?.classList.add('fail');}
   }
 
-  if(usedLLMScraper&&validDiscovered.length){
+  for(const l of validDiscovered){
+    if(results.some(r=>r.url===l.url))continue;
+    const chip=document.getElementById('ss-'+l.chipId);
     try{
-      const llmMore=await scrapeWithLLMScraper(validDiscovered.map(l=>({id:l.chipId,url:l.url})));
-      (llmMore||[]).forEach(r=>{
-        const original=validDiscovered.find(l=>l.url===r.url);
-        results.push({...r,src:original?.text||r.src||'Discovered',foundOn:original?.foundOn});
-        logCrawl(r.url,'scraped-llm-discovered',r.txt.length);
-        document.getElementById('ss-'+(original?.chipId||r.src))?.classList.add('done');
-      });
-    }catch(e){
-      validDiscovered.forEach(l=>{const chip=document.getElementById('ss-'+l.chipId);if(chip){chip.classList.add('fail');chip.title=e.message||String(e);}});
-      logCrawl('(llm-discovered)','error',0,e.message||String(e));
-    }
-  }
-  if(!endpoint){
-    for(const l of validDiscovered){
-      if(results.some(r=>r.url===l.url))continue;
-      const chip=document.getElementById('ss-'+l.chipId);
-      try{
-        const html=l._preHtml||await fetchProxy(l.url);
-        const txt=cleanHtml(html);
-        if(txt.length>150&&!looksLikeMissingPage(txt)){
-          results.push({src:l.text||'Discovered',url:l.url,txt,links:extractLinks(html,l.url),foundOn:l.foundOn,verified:true,scraper:'proxy'});
-          logCrawl(l.url,'scraped-proxy-discovered',txt.length);
-          if(chip)chip.classList.add('done');
-        }else{
-          logCrawl(l.url,'discovered-empty',txt.length);
-          if(chip)chip.classList.add('fail');
-        }
-      }catch(e){
-        logCrawl(l.url,'discovered-error',0,e.message||String(e));
+      const html=l._preHtml||await fetchProxy(l.url);
+      const txt=cleanHtml(html);
+      if(txt.length>150&&!looksLikeMissingPage(txt)){
+        results.push({src:l.text||'Discovered',url:l.url,txt,links:[...extractLinks(html,l.url),...extractMarkdownLinks(html,l.url)],foundOn:l.foundOn,verified:true,scraper:'jina'});
+        logCrawl(l.url,'scraped-discovered',txt.length);
+        if(chip)chip.classList.add('done');
+      }else{
+        logCrawl(l.url,'discovered-empty',txt.length);
         if(chip)chip.classList.add('fail');
       }
+    }catch(e){
+      logCrawl(l.url,'discovered-error',0,e.message||String(e));
+      if(chip)chip.classList.add('fail');
     }
   }
   logCrawl('(complete)','done',results.reduce((s,r)=>s+r.txt.length,0),`${results.length} pages indexed, ${vectorStore.length} chunks`);
@@ -1341,8 +1297,7 @@ async function assessVendorCore(vendor,product){
   parsed._meta={
     assessment_task_id:taskId,vendor_queried:vendor,product_service:product,domain,
     ai_provider:curProv,ai_model:curModel,
-    scraper_endpoint:getScraperEndpoint()||'browser-proxy-fallback',
-    scraper_engine:results.some(r=>r.scraper==='llm')?'open-source-llm-scraper':'browser-proxy',
+    scraper_engine:'jina-ai-reader+browser-proxy-fallback',
     sources_scraped:srcs,source_urls_allowed:allowedUrls,vector_chunks:vectorStore.length,
     crawl_log:[...crawlLog],generated_at:new Date().toISOString(),freshness_checked_at:null,logo_url:logoUrl,
     verification_log:[
@@ -1376,7 +1331,7 @@ async function runCompare(){
   const productB=document.getElementById('p2Input').value.trim();
   if(!vendorA){document.getElementById('vInput').focus();return;}
   if(!vendorB){document.getElementById('v2Input').focus();return;}
-  if(!gKey(curProv)&&!getScraperEndpoint()){openModal('ai');return;}
+  if(!gKey(curProv)){openModal('ai');return;}
   const cBtn=document.getElementById('compareRunBtn');
   const cLbl=document.getElementById('compareRunLbl');
   cBtn.disabled=true; cLbl.textContent='Assessing vendors…';
@@ -1771,7 +1726,7 @@ async function run(){
   const product=document.getElementById('pInput').value.trim();
   if(!vendor){document.getElementById('vInput').focus();return;}
   if(!product){document.getElementById('pInput').focus();return;}
-  if(!gKey(curProv)&&!getScraperEndpoint()){openModal('ai');return;}
+  if(!gKey(curProv)){openModal('ai');return;}
   busy(true); pip(0,'live');
   document.getElementById('smsgbar').textContent=STEPS[0];
   document.getElementById('sbn').classList.add('on');
