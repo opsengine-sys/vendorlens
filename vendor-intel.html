@@ -63,9 +63,15 @@ body{font-family:'DM Sans',sans-serif;background:#eef7f2;color:#091c11;min-heigh
 .ksave:hover{background:#128f3c}
 .mnote{font-size:11px;color:var(--ink4);background:var(--s2);border:1px solid var(--e);border-radius:var(--rxs);padding:9px 12px;line-height:1.6}
 .scraper-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--e)}
-.scraper-hdr{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.scraper-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .scraper-hdr>span:first-child{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
-.scraper-opt{font-size:11px;font-weight:400;color:var(--ink4);text-transform:none;letter-spacing:0}
+.scraper-builtin{display:flex;align-items:center;gap:7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--rxs);padding:8px 11px;margin-bottom:10px}
+.scraper-builtin-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0;box-shadow:0 0 0 2px #dcfce7}
+.scraper-builtin-label{font-size:11px;color:#166534;line-height:1.5}
+.scraper-adv{font-size:12px;color:var(--ink3)}
+.scraper-adv summary{cursor:pointer;font-size:11px;color:var(--ink4);user-select:none;padding:3px 0;margin-bottom:0}
+.scraper-adv summary:hover{color:var(--ink2)}
+.scraper-adv[open] summary{margin-bottom:2px}
 .scraper-desc{font-size:12px;color:var(--ink3);margin:0 0 10px;line-height:1.55}
 .scraper-desc a{color:var(--g1);text-decoration:none}.scraper-desc a:hover{text-decoration:underline}
 .scraper-status{font-size:11px;font-family:'DM Mono',monospace;min-height:16px;margin-bottom:2px;transition:color .2s}
@@ -404,21 +410,27 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
       <div class="mnote" id="mnote"></div>
       <div class="scraper-section">
         <div class="scraper-hdr">
-          <span>Custom Scraper</span>
-          <span class="scraper-opt">optional · replaces Jina AI</span>
+          <span>Web Scraper</span>
         </div>
-        <p class="scraper-desc">Run <a href="https://github.com/unclecode/crawl4ai" target="_blank" rel="noopener">crawl4ai</a> or <a href="https://github.com/ScrapeGraphAI/Scrapegraph-ai" target="_blank" rel="noopener">ScrapeGraphAI</a> as your primary scraper. Paste the endpoint URL — type is auto-detected.</p>
-        <div class="krow" style="margin-bottom:6px">
-          <input type="text" id="scraperEpInput" placeholder="http://localhost:11235  or  https://api.scrapegraphai.com" autocomplete="off" style="font-family:'DM Mono',monospace;font-size:11px"/>
-          <button class="ksave" onclick="saveScraper()">Save</button>
+        <div class="scraper-builtin">
+          <span class="scraper-builtin-dot"></span>
+          <span class="scraper-builtin-label">Built-in scraper active — fetches pages directly from this server, no external account needed.</span>
         </div>
-        <div id="scraperStatus" class="scraper-status"></div>
-        <div id="scraperKeyRow" style="display:none;margin-top:6px">
-          <div class="krow">
-            <input type="password" id="scraperKeyInput" placeholder="ScrapeGraphAI API key (SGAI-…)" autocomplete="off" style="font-size:12px"/>
+        <details class="scraper-adv">
+          <summary>Advanced: connect crawl4ai or ScrapeGraphAI</summary>
+          <p class="scraper-desc" style="margin-top:8px">Optionally route scraping through <a href="https://github.com/unclecode/crawl4ai" target="_blank" rel="noopener">crawl4ai</a> or <a href="https://github.com/ScrapeGraphAI/Scrapegraph-ai" target="_blank" rel="noopener">ScrapeGraphAI</a>. Paste the endpoint URL — type is auto-detected. Leave blank to use the built-in scraper.</p>
+          <div class="krow" style="margin-bottom:6px">
+            <input type="text" id="scraperEpInput" placeholder="http://localhost:11235  or  https://api.scrapegraphai.com" autocomplete="off" style="font-family:'DM Mono',monospace;font-size:11px"/>
             <button class="ksave" onclick="saveScraper()">Save</button>
           </div>
-        </div>
+          <div id="scraperStatus" class="scraper-status"></div>
+          <div id="scraperKeyRow" style="display:none;margin-top:6px">
+            <div class="krow">
+              <input type="password" id="scraperKeyInput" placeholder="ScrapeGraphAI API key (SGAI-…)" autocomplete="off" style="font-size:12px"/>
+              <button class="ksave" onclick="saveScraper()">Save</button>
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   </div>
@@ -885,15 +897,17 @@ document.addEventListener('click',e=>{if(!e.target.closest('.legend-wrap'))docum
 // SCRAPING
 // ═══════════════════════════════
 // CHECK_PROXIES: lightweight CORS proxies used only for URL availability checks.
-// No Jina here — Jina is too slow (5-15s) for parallel head-checking 17 URLs at once.
+// Built-in server-side scraper first — no CORS, no rate limits, no external account needed.
 const CHECK_PROXIES=[
+  u=>`/api/scrape?url=${encodeURIComponent(u)}`,
   u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
   u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
   u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
 ];
-// SCRAPE_PROXIES: Jina AI Reader first for high-quality clean markdown,
-// then CORS proxies as fallback.
+// SCRAPE_PROXIES: Built-in server-side scraper first (no external deps),
+// then Jina AI Reader for JS-rendered pages, then CORS proxies as fallback.
 const SCRAPE_PROXIES=[
+  u=>`/api/scrape?url=${encodeURIComponent(u)}`,
   u=>`https://r.jina.ai/${u}`,
   u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
   u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
