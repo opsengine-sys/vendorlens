@@ -130,6 +130,54 @@ http.createServer(async (req, res) => {
     }
   }
 
+  // ── /api/proxy-ai  (POST → relay AI calls server-side to avoid CORS) ──
+  if (reqUrl.pathname === '/api/proxy-ai' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', async () => {
+      let payload;
+      try { payload = JSON.parse(body); } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'invalid JSON' }));
+      }
+      const { url: targetUrl, method = 'POST', headers: fwdHeaders = {}, body: fwdBody } = payload;
+      if (!targetUrl || !/^https?:\/\//.test(targetUrl)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'missing or invalid url' }));
+      }
+      let parsed;
+      try { parsed = new URL(targetUrl); } catch {
+        res.writeHead(400); return res.end(JSON.stringify({ error: 'invalid url' }));
+      }
+      const bodyStr = typeof fwdBody === 'string' ? fwdBody : JSON.stringify(fwdBody);
+      const lib2 = parsed.protocol === 'https:' ? https : http;
+      const outHeaders = { ...fwdHeaders, 'Content-Length': Buffer.byteLength(bodyStr) };
+      const proxyReq = lib2.request({
+        hostname: parsed.hostname,
+        port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+        path: parsed.pathname + parsed.search,
+        method,
+        headers: outHeaders,
+        timeout: 120000,
+      }, proxyRes => {
+        let respBody = '';
+        proxyRes.on('data', c => respBody += c);
+        proxyRes.on('end', () => {
+          res.writeHead(proxyRes.statusCode, {
+            'Content-Type': proxyRes.headers['content-type'] || 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(respBody);
+        });
+      });
+      proxyReq.on('timeout', () => { proxyReq.destroy(); res.writeHead(504); res.end(JSON.stringify({ error: 'upstream_timeout' })); });
+      proxyReq.on('error', e => { res.writeHead(502); res.end(JSON.stringify({ error: e.message })); });
+      proxyReq.write(bodyStr);
+      proxyReq.end();
+    });
+    return;
+  }
+
   // ── /api/extract  (POST → Python LangExtract service) ─────────────────
   if (reqUrl.pathname === '/api/extract' && req.method === 'POST') {
     return proxyToExtract(req, res);

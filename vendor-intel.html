@@ -401,23 +401,47 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
 
 <!-- ── AI MODAL ── -->
 <div class="mbg" id="mbg-ai" onclick="if(event.target===this)closeModal('ai')">
-  <div class="modal">
+  <div class="modal" style="max-width:560px">
     <div class="mh"><div class="mt">AI Provider</div><button class="mx" onclick="closeModal('ai')">✕</button></div>
     <div class="mb">
-      <p class="mb-p">Select provider and paste your API key. Keys stay in your browser's <code>localStorage</code> only.</p>
-      <div class="pgrid">
-        <div class="pc on" id="pc-groq"      onclick="selProv('groq')"><div class="pc-logo">⚡</div><div class="pc-name">Groq</div><div class="pc-sub">Free · Fast inference</div></div>
-        <div class="pc"    id="pc-gemini"    onclick="selProv('gemini')"><div class="pc-logo">✦</div><div class="pc-name">Google Gemini</div><div class="pc-sub">Free tier available</div></div>
+      <p class="mb-p">Select a provider and paste your API key. Keys are stored in your browser only — never sent to our servers.</p>
+      <div class="pgrid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="pc on" id="pc-groq"      onclick="selProv('groq')"><div class="pc-logo">⚡</div><div class="pc-name">Groq</div><div class="pc-sub">Free · Fast</div></div>
+        <div class="pc"    id="pc-gemini"    onclick="selProv('gemini')"><div class="pc-logo">✦</div><div class="pc-name">Gemini</div><div class="pc-sub">Free tier</div></div>
         <div class="pc"    id="pc-openai"    onclick="selProv('openai')"><div class="pc-logo">◆</div><div class="pc-name">OpenAI</div><div class="pc-sub">Paid</div></div>
-        <div class="pc"    id="pc-anthropic" onclick="selProv('anthropic')"><div class="pc-logo">◈</div><div class="pc-name">Anthropic (Claude)</div><div class="pc-sub">Paid</div></div>
+        <div class="pc"    id="pc-anthropic" onclick="selProv('anthropic')"><div class="pc-logo">◈</div><div class="pc-name">Claude</div><div class="pc-sub">Paid</div></div>
+        <div class="pc"    id="pc-azure"     onclick="selProv('azure')"><div class="pc-logo">☁</div><div class="pc-name">Azure</div><div class="pc-sub">Enterprise</div></div>
+        <div class="pc"    id="pc-mistral"   onclick="selProv('mistral')"><div class="pc-logo">〽</div><div class="pc-name">Mistral</div><div class="pc-sub">Paid</div></div>
+        <div class="pc"    id="pc-together"  onclick="selProv('together')"><div class="pc-logo">∞</div><div class="pc-name">Together</div><div class="pc-sub">PAYG</div></div>
+        <div class="pc"    id="pc-ollama"    onclick="selProv('ollama')"><div class="pc-logo">🦙</div><div class="pc-name">Ollama</div><div class="pc-sub">Local</div></div>
       </div>
-      <div class="mrow"><label>Model</label><select id="msel"></select></div>
-      <div class="krow"><input type="password" id="kInput" placeholder="Paste API key…" autocomplete="off"/><button class="ksave" onclick="saveKey()">Save</button></div>
-      <div class="mnote" id="mnote"></div>
-      <div class="scraper-section">
-        <div class="scraper-hdr">
-          <span>Web Scraper</span>
+
+      <!-- Azure-specific fields -->
+      <div id="azureFields" style="display:none">
+        <div class="mrow" style="margin-bottom:8px"><label>Resource URL</label><input type="text" id="azureEpInput" placeholder="https://YOUR-RESOURCE.openai.azure.com" autocomplete="off" style="flex:1;font-family:'DM Mono',monospace;font-size:11px;background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rxs);color:var(--ink);padding:9px 11px;outline:none"/></div>
+        <div class="mrow"><label>Deployment</label><input type="text" id="azureDepInput" placeholder="my-gpt4o-deployment" autocomplete="off" style="flex:1;font-family:'DM Mono',monospace;font-size:11px;background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rxs);color:var(--ink);padding:9px 11px;outline:none"/></div>
+      </div>
+
+      <!-- Ollama custom endpoint -->
+      <div id="ollamaFields" style="display:none">
+        <div class="mrow"><label>Ollama URL</label><input type="text" id="ollamaEpInput" placeholder="http://localhost:11434" autocomplete="off" style="flex:1;font-family:'DM Mono',monospace;font-size:11px;background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rxs);color:var(--ink);padding:9px 11px;outline:none"/></div>
+      </div>
+
+      <div class="mrow"><label>Model</label><select id="msel" onchange="curModel=this.value"></select></div>
+      <div class="krow" style="align-items:stretch">
+        <div style="position:relative;flex:1">
+          <input type="password" id="kInput" placeholder="Paste API key…" autocomplete="off" oninput="onKeyInput(this.value)" style="width:100%;box-sizing:border-box"/>
+          <span id="kDetect" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;font-family:'DM Mono',monospace;color:var(--g1);pointer-events:none;display:none"></span>
         </div>
+        <button class="ksave" onclick="saveKey()">Save</button>
+      </div>
+      <div class="mnote" id="mnote"></div>
+      <div id="corsNote" style="display:none;margin-top:8px;padding:8px 11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--rxs);font-size:11px;color:#1e40af;line-height:1.55">
+        ⚡ API calls for this provider are routed through the local server to avoid browser CORS restrictions.
+      </div>
+
+      <div class="scraper-section">
+        <div class="scraper-hdr"><span>Web Scraper</span></div>
         <div class="scraper-builtin">
           <span class="scraper-builtin-dot"></span>
           <span class="scraper-builtin-label">Built-in scraper active — fetches pages server-side, no external account needed.</span>
@@ -713,11 +737,51 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
 // PROVIDERS
 // ═══════════════════════════════
 const PROVS = {
-  groq:     { name:'Groq',      ep:'https://api.groq.com/openai/v1/chat/completions', models:['llama-3.3-70b-versatile','llama-3.1-70b-versatile','mixtral-8x7b-32768'], def:'llama-3.3-70b-versatile', fmt:'openai', note:'Free tier. Key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>',
-    tpmPerModel:{'llama-3.3-70b-versatile':6000,'llama-3.1-70b-versatile':6000,'mixtral-8x7b-32768':5000} },
-  gemini:   { name:'Gemini',    ep:'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent', models:['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-pro'], def:'gemini-2.0-flash', fmt:'gemini', note:'Free tier. Key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>', tpmPerModel:null },
-  openai:   { name:'OpenAI',    ep:'https://api.openai.com/v1/chat/completions', models:['gpt-4o','gpt-4o-mini','gpt-4-turbo'], def:'gpt-4o-mini', fmt:'openai', note:'Paid. Key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>', tpmPerModel:null },
-  anthropic:{ name:'Anthropic', ep:'https://api.anthropic.com/v1/messages', models:['claude-sonnet-4-5','claude-haiku-4-5-20251001'], def:'claude-sonnet-4-5', fmt:'anthropic', note:'Paid. Key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>', tpmPerModel:null }
+  groq:      { name:'Groq',          ep:'https://api.groq.com/openai/v1/chat/completions',
+               models:['llama-3.3-70b-versatile','llama-3.1-70b-versatile','mixtral-8x7b-32768','gemma2-9b-it'],
+               def:'llama-3.3-70b-versatile', fmt:'openai', proxy:false,
+               note:'Free tier — fast inference. Key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>',
+               tpmPerModel:{'llama-3.3-70b-versatile':6000,'llama-3.1-70b-versatile':6000,'mixtral-8x7b-32768':5000,'gemma2-9b-it':15000},
+               keyPrefix:'gsk_', keyHint:'gsk_…' },
+  gemini:    { name:'Google Gemini', ep:'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+               models:['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-pro','gemini-2.0-flash-lite'],
+               def:'gemini-2.0-flash', fmt:'gemini', proxy:false, tpmPerModel:null,
+               note:'Free tier available. Key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>',
+               keyPrefix:'AIza', keyHint:'AIza…' },
+  openai:    { name:'OpenAI',        ep:'https://api.openai.com/v1/chat/completions',
+               models:['gpt-4o','gpt-4o-mini','gpt-4-turbo','gpt-3.5-turbo'],
+               def:'gpt-4o-mini', fmt:'openai', proxy:false, tpmPerModel:null,
+               note:'Paid. Key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>',
+               keyPrefix:'sk-', keyHint:'sk-…' },
+  anthropic: { name:'Anthropic',     ep:'https://api.anthropic.com/v1/messages',
+               models:['claude-sonnet-4-5','claude-haiku-4-5-20251001','claude-opus-4-5'],
+               def:'claude-sonnet-4-5', fmt:'anthropic', proxy:false, tpmPerModel:null,
+               note:'Paid. Key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>',
+               keyPrefix:'sk-ant-', keyHint:'sk-ant-…' },
+  azure:     { name:'Azure OpenAI',  ep:'',
+               models:['gpt-4o','gpt-4o-mini','gpt-4-turbo','gpt-4','gpt-35-turbo'],
+               def:'gpt-4o', fmt:'azure', proxy:true, tpmPerModel:null,
+               note:'Enterprise. Requires Azure OpenAI resource URL + deployment name. <a href="https://portal.azure.com" target="_blank">portal.azure.com</a>',
+               keyPrefix:'', keyHint:'Azure API key (32 hex chars)' },
+  mistral:   { name:'Mistral AI',    ep:'https://api.mistral.ai/v1/chat/completions',
+               models:['mistral-large-latest','mistral-small-latest','open-mixtral-8x22b','open-mistral-7b'],
+               def:'mistral-large-latest', fmt:'openai', proxy:true, tpmPerModel:null,
+               note:'Paid. Key at <a href="https://console.mistral.ai/api-keys" target="_blank">console.mistral.ai</a>',
+               keyPrefix:'', keyHint:'Mistral API key' },
+  together:  { name:'Together AI',   ep:'https://api.together.xyz/v1/chat/completions',
+               models:['meta-llama/Llama-3-70b-chat-hf','mistralai/Mixtral-8x22B-Instruct-v0.1','Qwen/Qwen2-72B-Instruct'],
+               def:'meta-llama/Llama-3-70b-chat-hf', fmt:'openai', proxy:true, tpmPerModel:null,
+               note:'Pay-as-you-go. Key at <a href="https://api.together.xyz/settings/api-keys" target="_blank">api.together.xyz</a>',
+               keyPrefix:'', keyHint:'Together API key' },
+  ollama:    { name:'Ollama (Local)', ep:'http://localhost:11434/v1/chat/completions',
+               models:['llama3.3','llama3.1','mistral','gemma2','qwen2.5'],
+               def:'llama3.3', fmt:'openai', proxy:true, tpmPerModel:null,
+               note:'Local inference — no API key needed. Run <code>ollama serve</code> on your machine.',
+               keyPrefix:'', keyHint:'(no key needed)' },
+};
+// Extra per-provider config stored separately (not enumerable in PROVS loop)
+const PROV_EXTRA = {
+  azure: { azureEndpoint:'', azureDeployment:'' }
 };
 let curProv  = localStorage.getItem('vl_p')  || 'groq';
 let curModel = localStorage.getItem('vl_m')  || PROVS.groq.def;
@@ -751,11 +815,54 @@ if(window.WORKATO_PAYLOAD){const w=window.WORKATO_PAYLOAD;if(w.vendor)document.g
 function openModal(id){refreshModal();document.getElementById('mbg-'+id).classList.add('on');if(id==='ai')checkLangExtract().then(ok=>{const el=document.getElementById('lxStatus');if(el)el.style.display=ok?'flex':'none';});}
 function closeModal(id){document.getElementById('mbg-'+id).classList.remove('on');}
 function selProv(p){curProv=p;curModel=PROVS[p].def;refreshModal();}
+
+// Auto-detect provider from key prefix when user pastes
+function onKeyInput(val){
+  const v=val.trim();
+  const det=document.getElementById('kDetect');
+  if(!v){if(det)det.style.display='none';return;}
+  let detected=null;
+  if(v.startsWith('gsk_'))detected='groq';
+  else if(v.startsWith('AIza'))detected='gemini';
+  else if(v.startsWith('sk-ant-'))detected='anthropic';
+  else if(v.startsWith('sk-')&&!v.startsWith('sk-ant-'))detected='openai';
+  if(detected&&detected!==curProv){
+    curProv=detected;curModel=PROVS[detected].def;
+    Object.keys(PROVS).forEach(k=>document.getElementById('pc-'+k)?.classList.toggle('on',k===curProv));
+    document.getElementById('msel').innerHTML=PROVS[curProv].models.map(m=>`<option value="${m}" ${m===curModel?'selected':''}>${m}</option>`).join('');
+    document.getElementById('mnote').innerHTML=PROVS[curProv].note||'';
+    refreshProviderExtras();
+    if(det){det.textContent=`✓ Detected: ${PROVS[detected].name}`;det.style.display='inline';}
+  } else if(det){det.style.display='none';}
+}
+
+function refreshProviderExtras(){
+  const isAzure=curProv==='azure', isOllama=curProv==='ollama';
+  const azF=document.getElementById('azureFields'), olF=document.getElementById('ollamaFields');
+  if(azF)azF.style.display=isAzure?'block':'none';
+  if(olF)olF.style.display=isOllama?'block':'none';
+  // populate saved azure/ollama fields
+  if(isAzure){
+    const ep=document.getElementById('azureEpInput'),dep=document.getElementById('azureDepInput');
+    if(ep)ep.value=localStorage.getItem('vl_azure_ep')||'';
+    if(dep)dep.value=localStorage.getItem('vl_azure_dep')||'';
+  }
+  if(isOllama){
+    const ol=document.getElementById('ollamaEpInput');
+    if(ol)ol.value=localStorage.getItem('vl_ollama_ep')||'http://localhost:11434';
+  }
+  // show CORS proxy note for proxy providers
+  const cn=document.getElementById('corsNote');
+  if(cn)cn.style.display=(PROVS[curProv]?.proxy&&curProv!=='ollama')?'block':'none';
+}
+
 function refreshModal(){
   Object.keys(PROVS).forEach(k=>document.getElementById('pc-'+k)?.classList.toggle('on',k===curProv));
   document.getElementById('msel').innerHTML=PROVS[curProv].models.map(m=>`<option value="${m}" ${m===curModel?'selected':''}>${m}</option>`).join('');
   document.getElementById('kInput').value=gKey(curProv);
+  document.getElementById('kInput').placeholder=PROVS[curProv].keyHint||'Paste API key…';
   document.getElementById('mnote').innerHTML=PROVS[curProv].note||'';
+  refreshProviderExtras();
   const ep=getScraperEndpoint(),type=getScraperType();
   const epEl=document.getElementById('scraperEpInput');
   if(epEl)epEl.value=ep;
@@ -765,21 +872,44 @@ function refreshModal(){
   const sk=document.getElementById('scraperKeyInput');
   if(sk)sk.value=getScrapeKey();
 }
+
 function saveKey(){
   const k=document.getElementById('kInput').value.trim();
-  if(!k&&!gKey(curProv)){alert('Paste your API key to continue.');return;}
+  // Ollama doesn't need a key
+  if(!k&&curProv!=='ollama'&&!gKey(curProv)){alert('Paste your API key to continue.');return;}
   if(k)localStorage.setItem('vl_k_'+curProv,k);
+  // Save azure extras
+  if(curProv==='azure'){
+    const ep=document.getElementById('azureEpInput')?.value.trim().replace(/\/+$/,'');
+    const dep=document.getElementById('azureDepInput')?.value.trim();
+    if(ep)localStorage.setItem('vl_azure_ep',ep);
+    if(dep)localStorage.setItem('vl_azure_dep',dep);
+  }
+  // Save ollama endpoint
+  if(curProv==='ollama'){
+    const ol=document.getElementById('ollamaEpInput')?.value.trim().replace(/\/+$/,'');
+    if(ol)localStorage.setItem('vl_ollama_ep',ol);
+    // Update ollama endpoint in PROVS dynamically
+    PROVS.ollama.ep=(ol||'http://localhost:11434')+'/v1/chat/completions';
+  }
   localStorage.setItem('vl_p',curProv);
   localStorage.setItem('vl_m',document.getElementById('msel').value);
   curModel=document.getElementById('msel').value; updateTopbar(); closeModal('ai');
 }
+
 function updateTopbar(){
-  const k=gKey(curProv);
+  const k=gKey(curProv)||(curProv==='ollama'?'local':'');
   document.getElementById('provDot').className='tb-dot '+(k?'ok':'no');
   const ep=getScraperEndpoint(),type=getScraperType();
   const scraperNote=ep&&type&&type!=='unknown'?` · ${scraperTypeLabel(type,ep)}`:'';
   document.getElementById('provLabel').textContent=k?`${PROVS[curProv].name} · ${curModel}${scraperNote}`:'Configure AI Provider';
 }
+
+// Restore saved ollama endpoint on page load
+(function(){
+  const ol=localStorage.getItem('vl_ollama_ep');
+  if(ol)PROVS.ollama.ep=ol+'/v1/chat/completions';
+})();
 
 // ═══════════════════════════════
 // CUSTOM SCRAPER
@@ -1367,44 +1497,99 @@ function parseRetryAfterMs(msg){
 function setStatusMsg(t){const el=document.getElementById('smsgbar');if(el)el.textContent=t;}
 async function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
+// Build the Azure OpenAI endpoint URL from saved resource + deployment + model version
+function azureEndpoint(){
+  const base=(localStorage.getItem('vl_azure_ep')||'').replace(/\/+$/,'');
+  const dep=localStorage.getItem('vl_azure_dep')||curModel;
+  if(!base)throw new Error('Azure OpenAI resource URL not set. Open "Configure AI Provider" and enter your Resource URL and Deployment name.');
+  return`${base}/openai/deployments/${dep}/chat/completions?api-version=2024-02-01`;
+}
+
+// Route call through the local Node server to avoid CORS for enterprise providers
+async function callViaProxy(payload){
+  const r=await fetch('/api/proxy-ai',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload),
+    signal:AbortSignal.timeout(120000)
+  });
+  if(!r.ok){
+    const e=await r.json().catch(()=>({}));
+    throw Object.assign(new Error(e.error||e.message||`Proxy error ${r.status}`),{status:r.status,body:e});
+  }
+  return r.json();
+}
+
 async function callAI(prompt,maxTok=7000,_attempt=0){
   const MAX_RETRIES=4;
-  const key=gKey(curProv); if(!key)throw new Error('No API key. Click "Configure AI Provider" in the topbar.');
   const p=PROVS[curProv]; const model=curModel||p.def;
+  const key=gKey(curProv);
+  // Ollama doesn't need a key; all others do
+  if(!key&&curProv!=='ollama')throw new Error('No API key. Click "Configure AI Provider" in the topbar.');
 
   async function doFetch(){
+    // ── Azure OpenAI (always proxied — CORS not allowed from browsers) ──────
+    if(p.fmt==='azure'){
+      const ep=azureEndpoint();
+      const data=await callViaProxy({url:ep,method:'POST',headers:{'Content-Type':'application/json','api-key':key},body:{model,messages:[{role:'user',content:prompt}],temperature:.1,max_tokens:maxTok}});
+      return data.choices?.[0]?.message?.content||'';
+    }
+    // ── Providers that need the server-side proxy (CORS blocked) ────────────
+    if(p.proxy){
+      const headers={'Content-Type':'application/json','Authorization':`Bearer ${key}`};
+      const body={model,messages:[{role:'user',content:prompt}],temperature:.1,max_tokens:maxTok};
+      const data=await callViaProxy({url:p.ep,method:'POST',headers,body});
+      return data.choices?.[0]?.message?.content||'';
+    }
+    // ── OpenAI-compatible (direct) ──────────────────────────────────────────
     if(p.fmt==='openai'){
       const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],temperature:.1,max_tokens:maxTok})});
       if(!r.ok){const e=await r.json().catch(()=>({}));throw Object.assign(new Error(e.error?.message||'API error'),{status:r.status,body:e});}
       return(await r.json()).choices?.[0]?.message?.content||'';
     }
+    // ── Google Gemini ───────────────────────────────────────────────────────
     if(p.fmt==='gemini'){
       const url=p.ep.replace('{model}',model)+'?key='+key;
       const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.1,maxOutputTokens:maxTok}})});
       if(!r.ok){const e=await r.json().catch(()=>({}));throw Object.assign(new Error(e.error?.message||'API error'),{status:r.status,body:e});}
       return(await r.json()).candidates?.[0]?.content?.parts?.[0]?.text||'';
     }
+    // ── Anthropic ───────────────────────────────────────────────────────────
     if(p.fmt==='anthropic'){
       const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],max_tokens:maxTok})});
       if(!r.ok){const e=await r.json().catch(()=>({}));throw Object.assign(new Error(e.error?.message||'API error'),{status:r.status,body:e});}
       return(await r.json()).content?.[0]?.text||'';
     }
-    throw new Error('Unknown provider format');
+    throw new Error('Unknown provider format: '+p.fmt);
   }
 
   try{
     return await doFetch();
   }catch(err){
-    const is429=err.status===429||/rate.limit|429|quota/i.test(err.message);
+    // CORS error → auto-retry via proxy
+    const isCors=err instanceof TypeError&&/fetch|failed|network|CORS/i.test(err.message)&&_attempt===0;
+    if(isCors){
+      setStatusMsg(`CORS error — retrying via local proxy…`);
+      const headers={'Content-Type':'application/json','Authorization':`Bearer ${key}`};
+      const body={model,messages:[{role:'user',content:prompt}],temperature:.1,max_tokens:maxTok};
+      const data=await callViaProxy({url:p.ep,method:'POST',headers,body});
+      return data.choices?.[0]?.message?.content||'';
+    }
+    // 429 rate-limit → countdown + retry with auto-model switch on Groq
+    const is429=err.status===429||/rate.limit|429|quota/i.test(String(err.message));
     if(is429&&_attempt<MAX_RETRIES){
-      let waitMs=parseRetryAfterMs(err.message);
-      if(!waitMs){
-        // Exponential backoff: 3s, 7s, 15s, 30s
-        waitMs=[3000,7000,15000,30000][_attempt]||30000;
+      // On Groq: if on the slow model at attempt 2+, switch to gemma2-9b-it which has higher TPM
+      if(curProv==='groq'&&_attempt===1&&curModel!=='gemma2-9b-it'){
+        setStatusMsg(`Rate limited — switching to Groq gemma2-9b-it (higher TPM)…`);
+        curModel='gemma2-9b-it';
+        document.getElementById('msel') && (document.getElementById('msel').value='gemma2-9b-it');
+        await sleep(1500);
+        return callAI(prompt,maxTok,_attempt+1);
       }
+      let waitMs=parseRetryAfterMs(err.message);
+      if(!waitMs){ waitMs=[3000,7000,15000,30000][_attempt]||30000; }
       waitMs=Math.min(waitMs,35000);
       const secs=Math.ceil(waitMs/1000);
-      // Countdown in status bar
       for(let i=secs;i>0;i--){
         setStatusMsg(`Rate limited by ${PROVS[curProv].name} — retrying in ${i}s… (attempt ${_attempt+1}/${MAX_RETRIES})`);
         await sleep(1000);
