@@ -34,6 +34,17 @@ body{font-family:'DM Sans',sans-serif;background:#eef7f2;color:#091c11;min-heigh
 .tb-pill:hover{background:rgba(255,255,255,.15)}
 .tb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .tb-dot.ok{background:#6fcf8a}.tb-dot.no{background:#e07060}
+.hchip{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:6px;padding:4px 9px;font-size:10px;font-family:'DM Mono',monospace;color:rgba(232,243,236,.75);cursor:pointer;transition:all .15s;white-space:nowrap;position:relative}
+.hchip:hover{background:rgba(255,255,255,.14);color:#e8f3ec}
+.hchip-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.hchip-dot.checking{background:#f59e0b;animation:blink 1s infinite}
+.hchip-dot.ok{background:#6fcf8a;box-shadow:0 0 0 2px rgba(111,207,138,.2)}
+.hchip-dot.err{background:#e07060;box-shadow:0 0 0 2px rgba(224,112,96,.2)}
+.hchip-dot.idle{background:rgba(255,255,255,.25)}
+.hchip-lat{font-size:9px;opacity:.65;margin-left:1px}
+.hchip-tip{position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);background:rgba(15,23,42,.95);color:#e2e8f0;font-size:10.5px;font-family:'DM Sans',sans-serif;border-radius:6px;padding:7px 11px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,.4);line-height:1.5}
+.hchip:hover .hchip-tip{opacity:1}
+.hchip-tip::before{content:'';position:absolute;bottom:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:rgba(15,23,42,.95)}
 
 /* ── MODALS ── */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
@@ -410,6 +421,7 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
     VendorLens
   </div>
   <div class="tb-r">
+    <div id="tb-health" style="display:flex;align-items:center;gap:5px"></div>
     <div class="tb-pill" id="provPill" onclick="openModal('ai')">
       <span class="tb-dot no" id="provDot"></span>
       <span id="provLabel">Configure AI Provider</span>
@@ -930,6 +942,9 @@ function saveKey(){
   localStorage.setItem('vl_p',curProv);
   localStorage.setItem('vl_m',document.getElementById('msel').value);
   curModel=document.getElementById('msel').value; updateTopbar(); closeModal('ai');
+  // Re-ping this provider now that a new key is saved
+  renderHealthChips();
+  runHealthChecks(curProv);
 }
 
 function updateTopbar(){
@@ -945,6 +960,120 @@ function updateTopbar(){
   const ol=localStorage.getItem('vl_ollama_ep');
   if(ol)PROVS.ollama.ep=ol+'/v1/chat/completions';
 })();
+
+// ═══════════════════════════════
+// PROVIDER HEALTH DASHBOARD
+// ═══════════════════════════════
+const _hcState = {}; // provId → {status:'idle'|'checking'|'ok'|'err', ms, error}
+
+function renderHealthChips(){
+  const bar = document.getElementById('tb-health');
+  if(!bar) return;
+  bar.innerHTML = '';
+  const hasSaved = Object.keys(PROVS).some(k => gKey(k) || k === 'ollama' && localStorage.getItem('vl_ollama_ep'));
+  if(!hasSaved) return;
+  Object.keys(PROVS).forEach(provId => {
+    const hasKey = gKey(provId) || (provId === 'ollama');
+    if(!hasKey) return;
+    const st = _hcState[provId] || {status:'idle'};
+    const dotCls = st.status === 'ok' ? 'ok' : st.status === 'err' ? 'err' : st.status === 'checking' ? 'checking' : 'idle';
+    const latLabel = st.ms ? (st.ms < 1000 ? `${st.ms}ms` : `${(st.ms/1000).toFixed(1)}s`) : '';
+    const p = PROVS[provId];
+    let tipLine = '';
+    if(st.status === 'ok')  tipLine = `✓ ${p.name} · ${latLabel} · responding`;
+    if(st.status === 'err') tipLine = `✗ ${p.name} · ${friendlyPingErr(st.error)}`;
+    if(st.status === 'checking') tipLine = `⏳ ${p.name} · pinging…`;
+    if(st.status === 'idle') tipLine = `${p.name} · click to ping`;
+    const chip = document.createElement('div');
+    chip.className = 'hchip';
+    chip.title = '';
+    chip.innerHTML = `
+      <span class="hchip-dot ${dotCls}"></span>
+      <span>${p.name.split(' ')[0]}</span>
+      ${latLabel ? `<span class="hchip-lat">${latLabel}</span>` : ''}
+      <span class="hchip-tip">${tipLine}</span>`;
+    chip.addEventListener('click', () => {
+      selProv(provId);
+      openModal('ai');
+    });
+    bar.appendChild(chip);
+  });
+}
+
+function friendlyPingErr(msg){
+  const s = String(msg||'');
+  if(/401|invalid.*key|unauthorized/i.test(s)) return 'Invalid key';
+  if(/403|forbidden/i.test(s)) return 'Access denied';
+  if(/429|rate/i.test(s)) return 'Rate limited';
+  if(/timeout|upstream/i.test(s)) return 'Timeout';
+  if(/CORS|network|fetch/i.test(s)) return 'Network error';
+  if(/deployment|resource/i.test(s)) return 'Config error';
+  return s.slice(0,40);
+}
+
+// Direct ping — never touches global curProv/curModel state
+async function pingProviderDirect(provId){
+  const p = PROVS[provId];
+  const key = gKey(provId);
+  if(!key && provId !== 'ollama') return {ok:false, ms:0, error:'No key'};
+  const model = (curProv === provId ? curModel : null) || p.def;
+  const PING = 'Reply: OK';
+  const t0 = Date.now();
+  try{
+    let text = '';
+    if(p.fmt === 'azure'){
+      const ep = azureEndpoint();
+      const data = await callViaProxy({url:ep, method:'POST',
+        headers:{'Content-Type':'application/json','api-key':key},
+        body:{model, messages:[{role:'user',content:PING}], max_tokens:8}});
+      text = data.choices?.[0]?.message?.content || '';
+    } else if(p.proxy || p.fmt === 'openai' && p.proxy){
+      const data = await callViaProxy({url:p.ep, method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+        body:{model, messages:[{role:'user',content:PING}], max_tokens:8}});
+      text = data.choices?.[0]?.message?.content || '';
+    } else if(p.fmt === 'openai'){
+      const r = await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+        body:JSON.stringify({model,messages:[{role:'user',content:PING}],max_tokens:8}),signal:AbortSignal.timeout(15000)});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw Object.assign(new Error(e.error?.message||`HTTP ${r.status}`),{status:r.status});}
+      text = (await r.json()).choices?.[0]?.message?.content || '';
+    } else if(p.fmt === 'gemini'){
+      const url = p.ep.replace('{model}',model)+'?key='+key;
+      const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:PING}]}],generationConfig:{maxOutputTokens:8}}),signal:AbortSignal.timeout(15000)});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${r.status}`);}
+      text = (await r.json()).candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else if(p.fmt === 'anthropic'){
+      const r = await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model,messages:[{role:'user',content:PING}],max_tokens:8}),signal:AbortSignal.timeout(15000)});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||`HTTP ${r.status}`);}
+      text = (await r.json()).content?.[0]?.text || '';
+    }
+    return {ok:true, ms:Date.now()-t0, reply:text};
+  }catch(err){
+    return {ok:false, ms:Date.now()-t0, error:err.message||String(err)};
+  }
+}
+
+async function runHealthChecks(onlyProvId=null){
+  const targets = onlyProvId
+    ? [onlyProvId]
+    : Object.keys(PROVS).filter(k => gKey(k) || k === 'ollama');
+  if(!targets.length) return;
+
+  // Mark all targets as checking immediately
+  targets.forEach(id => { _hcState[id] = {status:'checking'}; });
+  renderHealthChips();
+
+  // Ping all in parallel
+  await Promise.all(targets.map(async id => {
+    const r = await pingProviderDirect(id);
+    _hcState[id] = r.ok
+      ? {status:'ok',  ms:r.ms, reply:r.reply}
+      : {status:'err', ms:r.ms, error:r.error};
+    renderHealthChips(); // update as each one resolves
+  }));
+}
 
 // ═══════════════════════════════
 // TEST CONNECTION
@@ -3102,6 +3231,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     updateScraperStatus('detecting','Detecting scraper type…');
     _scraperTimer=setTimeout(()=>detectAndSave(val),750);
   });
+  // Render chips immediately (idle state), then ping all configured providers
+  renderHealthChips();
+  // Small delay so page paint is done first
+  setTimeout(()=>runHealthChecks(),800);
 });
 </script>
 </body>
