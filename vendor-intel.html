@@ -320,6 +320,43 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
 .empty p{font-size:13px;color:var(--ink3)}
 
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--e2);border-radius:3px}
+
+/* ── COMPARE ── */
+.compare-toggle{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:6px 12px;border-radius:var(--rxs);border:1.5px solid var(--e);background:var(--s);color:var(--ink3);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.compare-toggle:hover,.compare-toggle.on{border-color:var(--blu);color:var(--blu);background:var(--bbg)}
+.compare-card{display:none;border-top:1px solid var(--e);padding:14px 20px;background:var(--s2)}
+.compare-card.on{display:block}
+.compare-run-row{display:none;gap:8px;margin-bottom:14px}
+.compare-run-row.on{display:flex}
+.cbrun{flex:1;padding:13px;background:var(--blu);color:#fff;border:none;border-radius:var(--rsm);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(37,99,235,.3)}
+.cbrun:hover:not(:disabled){background:#1d4ed8;transform:translateY(-1px)}
+.cbrun:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.cbrun svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#compareResults{display:none;margin-bottom:20px}
+.comp-hdr{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;background:var(--s);border:1px solid var(--e);border-radius:var(--r);padding:22px;box-shadow:var(--sh);margin-bottom:3px;align-items:start}
+.comp-col-head{text-align:center;padding:14px 16px;border-radius:var(--rsm);background:var(--s2);border:1px solid var(--e)}
+.comp-col-head.winner{border-color:rgba(21,163,74,.4);background:rgba(21,163,74,.04)}
+.comp-vs-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:24px;gap:6px}
+.comp-vs{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--ink3);background:var(--s2);border:1.5px solid var(--e);border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.comp-section{background:var(--s);border:1px solid var(--e);border-radius:var(--rsm);padding:18px 20px;margin-bottom:3px;box-shadow:var(--sh)}
+.cert-diff-table{width:100%;border-collapse:collapse;font-size:12px}
+.cert-diff-table th{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink4);padding:8px 12px;border-bottom:1.5px solid var(--e);font-weight:500;text-align:left}
+.cert-diff-table th:not(:first-child){text-align:center;width:110px}
+.cert-diff-table td{padding:8px 12px;border-bottom:1px solid var(--e);color:var(--ink2);vertical-align:middle}
+.cert-diff-table td:not(:first-child){text-align:center}
+.cert-diff-table tr:last-child td{border-bottom:none}
+.cert-diff-table tr:hover td{background:var(--s2)}
+.cert-diff-table tr.both td{background:rgba(21,163,74,.03)}
+.cert-diff-table tr.only-a td,.cert-diff-table tr.only-b td{background:rgba(255,251,235,.6)}
+.comp-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.comp-split-hdr{font-family:'Syne',sans-serif;font-weight:600;font-size:13px;margin-bottom:10px;padding-bottom:8px;border-bottom:1.5px solid var(--e);color:var(--ink);display:flex;align-items:center;gap:8px}
+.comp-metric-row{display:grid;grid-template-columns:180px 1fr 1fr;gap:8px;padding:7px 12px;border-bottom:1px solid var(--e);font-size:12px;align-items:center}
+.comp-metric-row:last-child{border-bottom:none}
+.comp-metric-row:hover{background:var(--s2)}
+.comp-metric-lbl{color:var(--ink3);font-size:11px}
+.cmp-yes{color:var(--g1);font-weight:500}.cmp-no{color:var(--red)}.cmp-unk{color:var(--ink4);font-family:'DM Mono',monospace;font-size:10px}
+.cmp-winner-badge{font-size:9px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:100px;border:1px solid rgba(21,163,74,.3);background:var(--gg);color:var(--g1);margin-left:4px}
+@media(max-width:640px){.comp-hdr{grid-template-columns:1fr}.comp-vs-col{flex-direction:row;padding-top:0}.comp-split{grid-template-columns:1fr}.comp-metric-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -382,14 +419,28 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
   <div class="sbn" id="sbn"><div class="sdots"><div class="sd"></div><div class="sd"></div><div class="sd"></div></div><span id="smsg2">Fetching…</span><div class="ssrcs" id="ssrcs"></div></div>
 
   <div class="icard">
-    <div class="ich"><div><div class="ict">Vendor Research</div><div class="ics">Enter vendor + product — everything else is researched &amp; scored automatically</div></div></div>
+    <div class="ich"><div><div class="ict">Vendor Research</div><div class="ics">Enter vendor + product — everything else is researched &amp; scored automatically</div></div><button class="compare-toggle" id="compareToggle" onclick="toggleCompare()"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2.2"><path d="M8 6l4-4 4 4M16 18l-4 4-4-4M4 12h16"/></svg>Compare Two Vendors</button></div>
     <div class="icb">
       <div class="f2">
         <div class="fl"><label>Vendor Name or URL <span style="color:var(--g1)">*</span> <span class="ac">auto</span></label><input type="text" id="vInput" placeholder="e.g. Workday or workday.com" autocomplete="off" spellcheck="false"/></div>
         <div class="fl"><label>Product / Service <span style="color:var(--g1)">*</span> <span class="ac">auto</span></label><input type="text" id="pInput" placeholder="e.g. Workday HCM, Payroll Module" autocomplete="off" spellcheck="false"/></div>
       </div>
     </div>
+    <div class="compare-card" id="compareCard">
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--ink4);margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em">Vendor B — second vendor to compare</div>
+      <div class="f2">
+        <div class="fl"><label>Vendor B Name or URL <span style="color:var(--blu)">*</span></label><input type="text" id="v2Input" placeholder="e.g. BambooHR or bamboohr.com" autocomplete="off" spellcheck="false"/></div>
+        <div class="fl"><label>Vendor B Product / Service <span style="color:var(--blu)">*</span></label><input type="text" id="p2Input" placeholder="e.g. BambooHR HRIS" autocomplete="off" spellcheck="false"/></div>
+      </div>
+    </div>
     <div class="wkbar"><span class="wkchip">Workato</span><span>Auto-fill: <code>?vendor=Workday&amp;product=HCM&amp;autorun=1</code> or <code>window.WORKATO_PAYLOAD = {vendor, product, autorun:true}</code></span></div>
+  </div>
+
+  <div class="compare-run-row" id="compareRunRow">
+    <button class="cbrun" id="compareRunBtn" onclick="runCompare()">
+      <svg viewBox="0 0 24 24"><path d="M8 6l4-4 4 4M16 18l-4 4-4-4M4 12h16"/></svg>
+      <span id="compareRunLbl">Compare Both Vendors</span>
+    </button>
   </div>
 
   <button class="rbtn" id="runBtn" onclick="run()">
@@ -592,6 +643,9 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
     </div>
   </div>
 
+  <!-- COMPARE RESULTS -->
+  <div id="compareResults"></div>
+
   <div class="empty" id="emptyState">
     <div class="ei"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/><path d="M8 11h6M11 8v6"/></svg></div>
     <h3>Ready to assess</h3>
@@ -621,6 +675,11 @@ let vectorStore = [];
 
 // Crawl activity log
 let crawlLog = [];
+
+// Compare mode state
+let compareMode = false;
+let gDataB = null;
+let gLogoBUrl = null;
 
 // Workato / URL pre-fill
 (function(){
@@ -1250,6 +1309,278 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
   };
 }
 
+// ═══════════════════════════════
+// CORE ASSESSMENT (shared by run + compare)
+// ═══════════════════════════════
+async function assessVendorCore(vendor,product){
+  const taskId=makeTaskId();
+  const {domain,results}=await scrape(vendor);
+  if(!results.length)throw new Error(`No public pages found for "${vendor}". Check the domain or CORS proxy.`);
+  const srcs=results.map(r=>r.src+': '+r.url);
+  buildVectorStore(results);
+  const allowedUrls=allAllowedUrls(results);
+  const reviewQueries=[
+    'company legal name headquarters funding public company employees',
+    'SOC 2 ISO 27001 ISO 27701 PCI certification audit trust compliance',
+    'security encryption MFA SSO SAML penetration testing vulnerability incident response',
+    'privacy policy GDPR CCPA data subject DPA subprocessors data processing',
+    'data retention residency cloud provider AWS artificial intelligence training',
+    'status uptime SLA support terms breach outage acquisition leadership'
+  ];
+  const ctx=vectorContext(reviewQueries,5)||results.slice(0,8).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,2500)}`).join('\n\n---\n\n');
+  const logoUrl=await Promise.race([fetchLogo(vendor,domain),new Promise(r=>setTimeout(()=>r(null),3500))]);
+  let parsed,aiFallbackNote=null;
+  if(gKey(curProv)){
+    try{parsed=await runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,ctx);}
+    catch(e){aiFallbackNote='AI enrichment failed: '+(e.message||String(e));parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);}
+  }else{
+    aiFallbackNote='No AI key — evidence-only.';
+    parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);
+  }
+  const removedUrls=scrubUnprovenDocUrls(parsed,allowedUrls);
+  parsed._meta={
+    assessment_task_id:taskId,vendor_queried:vendor,product_service:product,domain,
+    ai_provider:curProv,ai_model:curModel,
+    scraper_endpoint:getScraperEndpoint()||'browser-proxy-fallback',
+    scraper_engine:results.some(r=>r.scraper==='llm')?'open-source-llm-scraper':'browser-proxy',
+    sources_scraped:srcs,source_urls_allowed:allowedUrls,vector_chunks:vectorStore.length,
+    crawl_log:[...crawlLog],generated_at:new Date().toISOString(),freshness_checked_at:null,logo_url:logoUrl,
+    verification_log:[
+      {ts:new Date().toISOString(),field:'assessment_task',oldVal:'',newVal:`Task ${taskId}`,sourceUrl:'',confidence:1,note:`Fetched ${results.length} pages, indexed ${vectorStore.length} chunks, ${allowedUrls.length} URLs confirmed reachable.`,changeType:'system'},
+      ...(aiFallbackNote?[{ts:new Date().toISOString(),field:'analysis_mode',oldVal:'AI enrichment',newVal:'Evidence-only',sourceUrl:'',confidence:1,note:aiFallbackNote,changeType:'system'}]:[]),
+      ...removedUrls.map(r=>({ts:new Date().toISOString(),field:r.field,oldVal:r.url,newVal:'',sourceUrl:r.url,confidence:1,note:'Removed — not found in fetched pages.',changeType:'rejected'}))
+    ]
+  };
+  return {parsed,logoUrl};
+}
+
+// ═══════════════════════════════
+// COMPARE MODE
+// ═══════════════════════════════
+function toggleCompare(){
+  compareMode=!compareMode;
+  document.getElementById('compareCard').classList.toggle('on',compareMode);
+  document.getElementById('compareRunRow').classList.toggle('on',compareMode);
+  document.getElementById('runBtn').style.display=compareMode?'none':'flex';
+  const btn=document.getElementById('compareToggle');
+  btn.classList.toggle('on',compareMode);
+  btn.innerHTML=compareMode
+    ?'<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg> Exit Compare'
+    :'<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2.2"><path d="M8 6l4-4 4 4M16 18l-4 4-4-4M4 12h16"/></svg> Compare Two Vendors';
+}
+
+async function runCompare(){
+  const vendorA=document.getElementById('vInput').value.trim();
+  const productA=document.getElementById('pInput').value.trim();
+  const vendorB=document.getElementById('v2Input').value.trim();
+  const productB=document.getElementById('p2Input').value.trim();
+  if(!vendorA){document.getElementById('vInput').focus();return;}
+  if(!vendorB){document.getElementById('v2Input').focus();return;}
+  if(!gKey(curProv)&&!getScraperEndpoint()){openModal('ai');return;}
+  const cBtn=document.getElementById('compareRunBtn');
+  const cLbl=document.getElementById('compareRunLbl');
+  cBtn.disabled=true; cLbl.textContent='Assessing vendors…';
+  busy(true); pip(0,'live');
+  document.getElementById('sbn').classList.add('on');
+  document.getElementById('smsg2').textContent=`Comparing ${vendorA} vs ${vendorB}…`;
+  document.getElementById('smsgbar').textContent=`Step 1/2: Assessing ${vendorA}…`;
+  let ticker=null;
+  try{
+    // Assess vendor A
+    pip(0,'live');
+    const {parsed:parsedA,logoUrl:logoA}=await assessVendorCore(vendorA,productA||vendorA);
+    gData=parsedA; gLogoUrl=logoA;
+    pip(0,'done');pip(1,'done');pip(2,'done');pip(3,'live');
+    document.getElementById('smsgbar').textContent=`Step 2/2: Assessing ${vendorB}…`;
+    document.getElementById('smsg2').textContent=`Now assessing ${vendorB}…`;
+    // Assess vendor B
+    const {parsed:parsedB,logoUrl:logoB}=await assessVendorCore(vendorB,productB||vendorB);
+    gDataB=parsedB; gLogoBUrl=logoB;
+    for(let i=0;i<=5;i++)pip(i,'done');
+    document.getElementById('sbn').classList.remove('on');
+    renderComparison(parsedA,parsedB);
+    document.getElementById('compareResults').style.display='block';
+    document.getElementById('res').classList.remove('on');
+    document.getElementById('emptyState').style.display='none';
+  }catch(err){
+    if(ticker)clearInterval(ticker);
+    document.getElementById('sbn').classList.remove('on');
+    document.getElementById('smsgbar').textContent='⚠ '+err.message;
+    setTimeout(()=>busy(false,true),4000);
+    cBtn.disabled=false; cLbl.textContent='Compare Both Vendors';
+    return;
+  }
+  busy(false); cBtn.disabled=false; cLbl.textContent='Compare Both Vendors';
+}
+
+function renderComparison(dA,dB){
+  const el=document.getElementById('compareResults');
+  if(!el)return;
+  const nameA=dA.legal_financial?.trade_name||dA._meta?.vendor_queried||'Vendor A';
+  const nameB=dB.legal_financial?.trade_name||dB._meta?.vendor_queried||'Vendor B';
+  const scoreA=Math.max(0,Math.min(100,parseInt(dA.scores?.overall)||0));
+  const scoreB=Math.max(0,Math.min(100,parseInt(dB.scores?.overall)||0));
+  const scoreCol=s=>s>=80?'#15803d':s>=60?'#16a34a':s>=40?'#d97706':s>=20?'#ea580c':'#dc2626';
+  const domains=[{k:'legal_financial',l:'Legal & Financial',w:'10%'},{k:'compliance',l:'Compliance',w:'20%'},{k:'security',l:'Security',w:'25%'},{k:'privacy_data',l:'Privacy & Data',w:'15%'},{k:'access_risk',l:'Access Risk',w:'25%'},{k:'operational',l:'Operational',w:'5%'}];
+  const gradeOrder={A:5,B:4,C:3,D:2,F:1,NA:0};
+  const GC={A:'#15803d',B:'#16a34a',C:'#d97706',D:'#ea580c',F:'#dc2626',NA:'#9cbfaa'};
+  const certMap=[['soc2_type2','SOC 2 Type II'],['soc2_type1','SOC 2 Type I'],['iso_27001','ISO 27001'],['iso_27701','ISO 27701 (Privacy)'],['iso_27017','ISO 27017 (Cloud)'],['iso_27018','ISO 27018 (PII)'],['hipaa_baa_available','HIPAA BAA'],['pci_dss','PCI DSS'],['fedramp','FedRAMP'],['gdpr_compliant','GDPR Compliant'],['ccpa_compliant','CCPA Compliant'],['csa_star','CSA STAR'],['nist_csf','NIST CSF']];
+  const certOk=v=>v===true||(typeof v==='string'&&/yes|certified|compliant|available/i.test(v));
+  const certUnk=v=>v===null||v===undefined;
+
+  // Compute domain win counts
+  let winsA=0,winsB=0;
+  domains.forEach(({k})=>{const oA=gradeOrder[dA.scores?.[k]||'NA']||0,oB=gradeOrder[dB.scores?.[k]||'NA']||0;if(oA>oB)winsA++;else if(oB>oA)winsB++;});
+
+  const fmtV=v=>{
+    if(v===null||v===undefined)return `<span class="cmp-unk">Unknown</span>`;
+    if(v===true||/^yes$/i.test(String(v).trim()))return `<span class="cmp-yes">Yes ✅</span>`;
+    if(v===false||/^no$/i.test(String(v).trim()))return `<span class="cmp-no">No ✗</span>`;
+    return `<span style="color:var(--ink2);font-size:12px">${String(v).slice(0,55)}</span>`;
+  };
+
+  const logoHtml=(url,name)=>url?`<img src="${url}" alt="" style="width:40px;height:40px;border-radius:9px;object-fit:cover;border:1px solid var(--e)" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:'';
+  const avHtml=(url,name)=>`<div style="width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,var(--g1),var(--g2));display:${url?'none':'flex'};align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:18px;margin:0 auto 8px;flex-shrink:0">${name.charAt(0).toUpperCase()}</div>`;
+
+  el.innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.02em">Vendor Comparison</div>
+    <div style="display:flex;gap:8px">
+      <button class="cbtn" onclick="document.getElementById('res').classList.add('on');document.getElementById('compareResults').style.display='none';if(gData)render(gData)">View ${nameA} Full Report</button>
+      <button class="cbtn" onclick="renderSingleFromCompare()">View ${nameB} Full Report</button>
+    </div>
+  </div>
+
+  <div class="comp-hdr">
+    <div class="comp-col-head ${scoreA>=scoreB?'winner':''}">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px">
+        ${logoHtml(gLogoUrl,nameA)}${avHtml(gLogoUrl,nameA)}
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.02em">${nameA}</div>
+          <div style="font-size:11px;color:var(--ink4);font-family:'DM Mono',monospace">${dA._meta?.domain||''}</div>
+        </div>
+      </div>
+      <div style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:${scoreCol(scoreA)};line-height:1">${scoreA}<span style="font-size:14px;color:var(--ink4);margin-left:2px">/100</span></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:4px">${dA.verdict?.risk_tier||'?'} Risk · ${dA.verdict?.recommendation||''}</div>
+      ${scoreA>scoreB?`<div style="margin-top:8px"><span class="cmp-winner-badge">▲ Higher Score</span></div>`:''}
+      ${winsA>winsB?`<div style="margin-top:4px;font-size:11px;color:var(--g1)">Leads in ${winsA} domains</div>`:''}
+    </div>
+    <div class="comp-vs-col">
+      <div class="comp-vs">VS</div>
+      <div style="font-size:10px;color:var(--ink4);text-align:center;font-family:'DM Mono',monospace;margin-top:6px">${scoreA>scoreB?nameA.split(' ')[0]+' leads by '+(scoreA-scoreB)+' pts':scoreB>scoreA?nameB.split(' ')[0]+' leads by '+(scoreB-scoreA)+' pts':'Scores tied'}</div>
+    </div>
+    <div class="comp-col-head ${scoreB>scoreA?'winner':''}">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px">
+        ${logoHtml(gLogoBUrl,nameB)}${avHtml(gLogoBUrl,nameB)}
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.02em">${nameB}</div>
+          <div style="font-size:11px;color:var(--ink4);font-family:'DM Mono',monospace">${dB._meta?.domain||''}</div>
+        </div>
+      </div>
+      <div style="font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:${scoreCol(scoreB)};line-height:1">${scoreB}<span style="font-size:14px;color:var(--ink4);margin-left:2px">/100</span></div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:4px">${dB.verdict?.risk_tier||'?'} Risk · ${dB.verdict?.recommendation||''}</div>
+      ${scoreB>scoreA?`<div style="margin-top:8px"><span class="cmp-winner-badge">▲ Higher Score</span></div>`:''}
+      ${winsB>winsA?`<div style="margin-top:4px;font-size:11px;color:var(--g1)">Leads in ${winsB} domains</div>`:''}
+    </div>
+  </div>
+
+  <div class="comp-section">
+    <div class="sec">Domain Grade Comparison</div>
+    <table class="stbl">
+      <thead><tr><th>Domain</th><th>${nameA}</th><th>${nameB}</th><th>Edge</th><th>Weight</th></tr></thead>
+      <tbody>
+        ${domains.map(({k,l,w})=>{
+          const gA=dA.scores?.[k]||'NA',gB=dB.scores?.[k]||'NA';
+          const oA=gradeOrder[gA]||0,oB=gradeOrder[gB]||0;
+          const edge=oA>oB?`<span style="color:var(--g1);font-size:11px;font-family:'DM Mono',monospace">▲ ${nameA.split(' ')[0]}</span>`:oB>oA?`<span style="color:var(--g1);font-size:11px;font-family:'DM Mono',monospace">▲ ${nameB.split(' ')[0]}</span>`:`<span style="color:var(--ink4);font-size:11px">—</span>`;
+          return `<tr><td>${l}</td><td><span class="grade" style="color:${GC[gA]||'#9cbfaa'}">${gA}</span></td><td><span class="grade" style="color:${GC[gB]||'#9cbfaa'}">${gB}</span></td><td>${edge}</td><td style="color:var(--ink4);font-size:11px;font-family:'DM Mono',monospace">${w}</td></tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="comp-section">
+    <div class="sec">Certification Comparison</div>
+    <table class="cert-diff-table">
+      <thead><tr><th>Certification</th><th>${nameA}</th><th>${nameB}</th><th>Diff</th></tr></thead>
+      <tbody>
+        ${certMap.map(([k,label])=>{
+          const vA=dA.compliance?.[k],vB=dB.compliance?.[k];
+          const okA=certOk(vA),okB=certOk(vB),uA=certUnk(vA),uB=certUnk(vB);
+          const rowCls=okA&&okB?'both':okA&&!okB?'only-a':!okA&&okB?'only-b':'';
+          const diff=okA&&okB?'<span style="color:var(--g1);font-size:11px">Both ✅</span>':okA&&!okB?`<span style="color:var(--amb);font-size:11px">${nameA.split(' ')[0]} only</span>`:!okA&&okB?`<span style="color:var(--amb);font-size:11px">${nameB.split(' ')[0]} only</span>`:`<span style="color:var(--ink4);font-size:11px">Neither</span>`;
+          return `<tr class="${rowCls}"><td>${label}</td><td>${uA?'<span style="color:var(--ink4)">?</span>':okA?'<span style="color:var(--g1)">✅</span>':'<span style="color:var(--ink4)">✗</span>'}</td><td>${uB?'<span style="color:var(--ink4)">?</span>':okB?'<span style="color:var(--g1)">✅</span>':'<span style="color:var(--ink4)">✗</span>'}</td><td>${diff}</td></tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="comp-section">
+    <div class="sec">Risk Flags</div>
+    <div class="comp-split">
+      <div>
+        <div class="comp-split-hdr">${nameA} <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink4);font-weight:400">${(dA.flags||[]).length} flags</span></div>
+        ${(dA.flags||[]).length?(dA.flags||[]).map(f=>`<div class="flag ${f.severity||'amber'}" style="margin-bottom:6px"><span class="flag-ico">${{red:'🚩',amber:'⚠️',green:'✅'}[f.severity]||'ℹ️'}</span><div class="flag-txt"><strong>${f.title||''}</strong><div style="font-size:11px;margin-top:2px">${f.detail||''}</div></div></div>`).join(''):'<div style="color:var(--ink4);font-size:13px;padding:8px 0">No flags raised.</div>'}
+      </div>
+      <div>
+        <div class="comp-split-hdr">${nameB} <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink4);font-weight:400">${(dB.flags||[]).length} flags</span></div>
+        ${(dB.flags||[]).length?(dB.flags||[]).map(f=>`<div class="flag ${f.severity||'amber'}" style="margin-bottom:6px"><span class="flag-ico">${{red:'🚩',amber:'⚠️',green:'✅'}[f.severity]||'ℹ️'}</span><div class="flag-txt"><strong>${f.title||''}</strong><div style="font-size:11px;margin-top:2px">${f.detail||''}</div></div></div>`).join(''):'<div style="color:var(--ink4);font-size:13px;padding:8px 0">No flags raised.</div>'}
+      </div>
+    </div>
+  </div>
+
+  <div class="comp-section">
+    <div class="sec">Key Security & Privacy Metrics</div>
+    <div style="border:1px solid var(--e);border-radius:var(--rxs);overflow:hidden">
+      <div class="comp-metric-row" style="background:var(--s2);font-weight:500;font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--ink4)"><span>Metric</span><span>${nameA}</span><span>${nameB}</span></div>
+      ${[
+        {l:'DPA Available',a:dA.privacy_data?.dpa_available,b:dB.privacy_data?.dpa_available},
+        {l:'Encryption in Transit',a:dA.security?.encryption_in_transit,b:dB.security?.encryption_in_transit},
+        {l:'Encryption at Rest',a:dA.security?.encryption_at_rest,b:dB.security?.encryption_at_rest},
+        {l:'MFA Enforced',a:dA.security?.mfa_enforced,b:dB.security?.mfa_enforced},
+        {l:'SSO Supported',a:dA.security?.sso_supported,b:dB.security?.sso_supported},
+        {l:'Bug Bounty Program',a:dA.security?.bug_bounty_program,b:dB.security?.bug_bounty_program},
+        {l:'Incident Response Plan',a:dA.security?.incident_response_plan,b:dB.security?.incident_response_plan},
+        {l:'SOC 2 Type II',a:dA.compliance?.soc2_type2,b:dB.compliance?.soc2_type2},
+        {l:'ISO 27001',a:dA.compliance?.iso_27001,b:dB.compliance?.iso_27001},
+        {l:'ISO 27701',a:dA.compliance?.iso_27701,b:dB.compliance?.iso_27701},
+        {l:'GDPR Compliant',a:dA.compliance?.gdpr_compliant,b:dB.compliance?.gdpr_compliant},
+        {l:'Right to Deletion',a:dA.privacy_data?.right_to_deletion,b:dB.privacy_data?.right_to_deletion},
+        {l:'Subprocessors Listed',a:dA.access_risk?.subprocessors_with_data_access,b:dB.access_risk?.subprocessors_with_data_access},
+        {l:'Data Retention Policy',a:dA.access_risk?.data_retention_policy,b:dB.access_risk?.data_retention_policy},
+        {l:'Multi-region Redundancy',a:dA.operational?.multi_region_redundancy,b:dB.operational?.multi_region_redundancy}
+      ].map(({l,a,b})=>`<div class="comp-metric-row"><span class="comp-metric-lbl">${l}</span><span>${fmtV(a)}</span><span>${fmtV(b)}</span></div>`).join('')}
+    </div>
+  </div>
+
+  <div class="disc" style="margin-top:3px">⚖️ Comparison is based on publicly available information scraped at assessment time. Independently verify all compliance claims with each vendor before making procurement decisions. <button class="cbtn" onclick="exportComparisonCSV()" style="margin-left:8px">⬇ Export CSV</button></div>`;
+}
+
+function renderSingleFromCompare(){
+  if(!gDataB)return;
+  gData=gDataB; gLogoUrl=gLogoBUrl;
+  render(gDataB);
+  document.getElementById('res').classList.add('on');
+  document.getElementById('compareResults').style.display='none';
+}
+
+function exportComparisonCSV(){
+  if(!gData||!gDataB)return;
+  const nameA=gData._meta?.vendor_queried||'Vendor A';
+  const nameB=gDataB._meta?.vendor_queried||'Vendor B';
+  const rows=[['Metric',nameA,nameB]];
+  const domains=[['legal_financial','Legal & Financial'],['compliance','Compliance'],['security','Security'],['privacy_data','Privacy & Data'],['access_risk','Access Risk'],['operational','Operational']];
+  rows.push(['Overall Score',gData.scores?.overall||'',gDataB.scores?.overall||'']);
+  domains.forEach(([k,l])=>rows.push([l+' Grade',gData.scores?.[k]||'NA',gDataB.scores?.[k]||'NA']));
+  const certMap=[['soc2_type2','SOC 2 Type II'],['iso_27001','ISO 27001'],['iso_27701','ISO 27701'],['gdpr_compliant','GDPR'],['ccpa_compliant','CCPA'],['hipaa_baa_available','HIPAA BAA'],['pci_dss','PCI DSS']];
+  certMap.forEach(([k,l])=>{const fA=gData.compliance?.[k],fB=gDataB.compliance?.[k];rows.push([l,fA===true?'Yes':fA===false?'No':fA||'Unknown',fB===true?'Yes':fB===false?'No':fB||'Unknown']);});
+  const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`compare-${nameA.replace(/\s+/g,'-')}-vs-${nameB.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+
 async function run(){
   const vendor=document.getElementById('vInput').value.trim();
   const product=document.getElementById('pInput').value.trim();
@@ -1260,67 +1591,16 @@ async function run(){
   document.getElementById('smsgbar').textContent=STEPS[0];
   document.getElementById('sbn').classList.add('on');
   document.getElementById('smsg2').textContent='Fetching pages for '+vendor+'…';
-  const taskId=makeTaskId();
-  let ctx='',srcs=[],allowedUrls=[];
   let ticker=null;
+  let step=0; ticker=setInterval(()=>{pip(step,'done');step=Math.min(step+1,5);pip(step,'live');document.getElementById('smsgbar').textContent=STEPS[step];},8000);
   try{
-    const {domain,results}=await scrape(vendor);
-    if(!results.length)throw new Error('No public pages could be fetched. Check the vendor domain or try again; the CORS proxy may be temporarily unavailable.');
-    srcs=results.map(r=>r.src+': '+r.url);
-    buildVectorStore(results);
-    allowedUrls=allAllowedUrls(results);
-    const reviewQueries=[
-      'company legal name headquarters funding public company employees',
-      'product travel expense platform API integrations pricing support',
-      'SOC 2 SOC 1 ISO 27001 ISO 27701 PCI certification audit report trust compliance',
-      'security encryption MFA SSO SAML penetration testing vulnerability disclosure incident response',
-      'privacy policy GDPR CCPA data subject rights DPA subprocessors data processing agreement',
-      'data retention data residency cloud provider AWS subprocessors artificial intelligence training',
-      'status uptime SLA support terms acceptable use cookie policy',
-      'breach incident outage acquisition funding leadership regulatory fine'
-    ];
-    const focusedCtx=vectorContext(reviewQueries,5);
-    ctx=focusedCtx||results.slice(0,8).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,2500)}`).join('\n\n---\n\n');
-    // Fetch logo best-effort; never block the assessment on branding assets.
-    gLogoUrl=await Promise.race([fetchLogo(vendor,domain),new Promise(resolve=>setTimeout(()=>resolve(null),3500))]);
-    document.getElementById('sbn').classList.remove('on');
-    pip(0,'done');pip(1,'done');pip(2,'live');
-    document.getElementById('smsgbar').textContent=STEPS[2];
-    let step=2; ticker=setInterval(()=>{pip(step,'done');step=Math.min(step+1,5);pip(step,'live');document.getElementById('smsgbar').textContent=STEPS[step];},7000);
-    let parsed,aiFallbackNote=null;
-    if(gKey(curProv)){
-      try{
-        parsed=await runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,ctx);
-      }catch(e){
-        aiFallbackNote='AI enrichment failed, rendered evidence-only report: '+(e.message||String(e));
-        parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);
-      }
-    }else{
-      aiFallbackNote='No AI key configured, rendered evidence-only report from open-source scraper output.';
-      parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);
-    }
+    const {parsed,logoUrl}=await assessVendorCore(vendor,product);
     clearInterval(ticker); for(let i=0;i<=5;i++)pip(i,'done');
-    const removedUrls=scrubUnprovenDocUrls(parsed,allowedUrls);
-    parsed._meta={
-      assessment_task_id:taskId,vendor_queried:vendor,product_service:product,domain,
-      ai_provider:curProv,ai_model:curModel,
-      scraper_endpoint:getScraperEndpoint()||'browser-proxy-fallback',
-      scraper_engine:results.some(r=>r.scraper==='llm')?'open-source-llm-scraper':'browser-proxy',
-      sources_scraped:srcs,
-      source_urls_allowed:allowedUrls,
-      vector_chunks:vectorStore.length,
-      crawl_log:crawlLog,
-      generated_at:new Date().toISOString(),
-      freshness_checked_at:null,
-      logo_url:gLogoUrl,
-      verification_log:[
-        {ts:new Date().toISOString(),field:'assessment_task',oldVal:'',newVal:`Started isolated review task ${taskId}`,sourceUrl:'',confidence:1,note:`Fetched ${results.length} pages, indexed ${vectorStore.length} chunks, discovered ${allowedUrls.length} URLs.`,changeType:'system'},
-        ...(aiFallbackNote?[{ts:new Date().toISOString(),field:'analysis_mode',oldVal:'AI enrichment',newVal:'Evidence-only',sourceUrl:'',confidence:1,note:aiFallbackNote,changeType:'system'}]:[]),
-        ...removedUrls.map(r=>({ts:new Date().toISOString(),field:r.field,oldVal:r.url,newVal:'',sourceUrl:r.url,confidence:1,note:'Removed because the URL was not discovered in fetched page content.',changeType:'rejected'}))
-      ]
-    };
-    gData=parsed; await render(parsed);
+    gData=parsed; gLogoUrl=logoUrl;
+    document.getElementById('sbn').classList.remove('on');
+    await render(parsed);
     document.getElementById('res').classList.add('on');
+    document.getElementById('compareResults').style.display='none';
     document.getElementById('emptyState').style.display='none';
     computeFreshness(parsed);
   }catch(err){
