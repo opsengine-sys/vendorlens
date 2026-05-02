@@ -1732,9 +1732,13 @@ function cleanHtml(html){
     .replace(/your browser does not support the video tag\.?/gi,' ')
     .replace(/&nbsp;/g,' ')
     .replace(/&amp;/g,'&')
+    // Strip CSS-in-JS / inline style blocks that survive tag removal (common in NextJS/React SSR)
+    .replace(/\.[a-zA-Z][\w-]*(?:\s*,\s*\.[a-zA-Z][\w-]*)*\s*\{[^}]*\}/g,' ')
+    .replace(/--[\w-]+\s*:\s*[^;}{]+;/g,' ')
+    .replace(/:[a-z-]+\s*\{[^}]*\}/g,' ')
     .replace(/\s{3,}/g,'\n\n')
     .trim()
-    .slice(0,12000);
+    .slice(0,25000);
 }
 function absolutizeUrl(href,base){
   if(!href||/^(mailto:|tel:|javascript:|#)/i.test(href))return null;
@@ -1782,12 +1786,12 @@ function discoverRelevantLinks(results,domain){
 }
 
 // Simple text chunking for vector-like search
-function chunkText(text,maxLen=500){
+function chunkText(text,maxLen=900){
   const chunks=[];
   const sentences=text.split(/[.!?]+/);
   let cur='';
   for(const s of sentences){
-    if((cur+s).length>maxLen&&cur.length>50){chunks.push(cur.trim());cur='';}
+    if((cur+s).length>maxLen&&cur.length>80){chunks.push(cur.trim());cur='';}
     cur+=s+'.';
   }
   if(cur.trim().length>20)chunks.push(cur.trim());
@@ -1817,13 +1821,13 @@ function vectorSearch(query,topK=5){
   }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
   return scored.slice(0,topK);
 }
-function vectorContext(queries,topK=4){
+function vectorContext(queries,topK=6){
   const seen=new Set(),out=[];
   queries.forEach(q=>vectorSearch(q,topK).forEach(hit=>{
     const k=hit.url+'#'+hit.chunkId;
     if(seen.has(k))return;
     seen.add(k);
-    out.push(`SOURCE: ${hit.src} (${hit.url})\n${hit.text.slice(0,650)}`);
+    out.push(`SOURCE: ${hit.src} (${hit.url})\n${hit.text.slice(0,1100)}`);
   }));
   return out.join('\n\n---\n\n');
 }
@@ -2337,37 +2341,80 @@ async function callDomainAgent(agentName,vendor,product,domain,ctx,allowedUrls,m
   const prompt=domainPrompt(agentName,vendor,product,domain,ctx,allowedUrls);
   const raw=await callAI(prompt,maxTok);
   const fence=raw.match(/```json\s*([\s\S]*?)```/);const bare=raw.match(/(\{[\s\S]*\})/s);
-  return JSON.parse(fence?fence[1]:bare?bare[1]:'{}');
+  const jsonStr=fence?fence[1]:bare?bare[1]:'{}';
+  try{return JSON.parse(jsonStr);}catch(e){
+    // Fix common truncation/trailing-comma issues before giving up
+    try{return JSON.parse(jsonStr.replace(/,(\s*[}\]])/g,'$1'));}catch(e2){}
+    return {};
+  }
 }
 
 async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,fallbackCtx){
-  document.getElementById('smsgbar').textContent='Agent 1/5: Fetching compliance & certifications…';
-  const compCtx   = ctxFor(['SOC 2 SOC2 certification audit trust','ISO 27001 ISO 27017 ISO 27018 ISO 9001 certification standard','PCI DSS FedRAMP HIPAA CSA STAR NIST CMMC GDPR CCPA compliance framework','data residency certifications regulatory'],7)||fallbackCtx.slice(0,3000);
-  const secCtx    = ctxFor(['encryption TLS MFA SSO SAML penetration testing vulnerability incident response zero trust','bug bounty SIEM WAF DDoS secure SDLC key management FIPS'],6)||fallbackCtx.slice(0,3000);
-  const privCtx   = ctxFor(['privacy policy GDPR CCPA data subject DPA subprocessors data processing agreement','data retention AI training opt out consent DPO anonymization pseudonymization'],6)||fallbackCtx.slice(0,3000);
-  const legalCtx  = ctxFor(['company legal name headquarters founded employees funding investors revenue','contract SLA MSA auto renewal termination indemnification governing law uptime support'],6)||fallbackCtx.slice(0,3000);
-  const synthCtx  = fallbackCtx.slice(0,4000);
+  document.getElementById('smsgbar').textContent='Building analysis context…';
+  const compCtx   = ctxFor(['SOC 2 SOC2 certification audit trust','ISO 27001 ISO 27017 ISO 27018 ISO 9001 certification standard','PCI DSS FedRAMP HIPAA CSA STAR NIST CMMC GDPR CCPA compliance framework','data residency certifications regulatory'],10)||fallbackCtx.slice(0,6000);
+  const secCtx    = ctxFor(['encryption TLS MFA SSO SAML penetration testing vulnerability incident response zero trust','bug bounty SIEM WAF DDoS secure SDLC key management FIPS'],9)||fallbackCtx.slice(0,6000);
+  const privCtx   = ctxFor(['privacy policy GDPR CCPA data subject DPA subprocessors data processing agreement','data retention AI training opt out consent DPO anonymization pseudonymization'],9)||fallbackCtx.slice(0,6000);
+  const legalCtx  = ctxFor(['company legal name headquarters founded employees funding investors revenue','contract SLA MSA auto renewal termination indemnification governing law uptime support'],9)||fallbackCtx.slice(0,6000);
+  // Synthesis gets a broad, full-picture context — no topic filter, just the richest pages
+  const synthCtx  = results.slice(0,6).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,3500)}`).join('\n\n---\n\n').slice(0,14000)||fallbackCtx.slice(0,8000);
+
+  // Detect rate-limited providers (Groq free tier = 6k TPM) and run sequentially to avoid collisions
+  const tpm=getModelTpm();
+  const runSeq=tpm<=10000;
 
   // Warn if estimated token usage exceeds this provider's per-minute limit
-  const budgetInfo=checkTokenBudget([
-    {ctx:compCtx,maxTok:2800},{ctx:secCtx,maxTok:2800},
-    {ctx:privCtx,maxTok:2800},{ctx:legalCtx,maxTok:2800},{ctx:synthCtx,maxTok:3500}
-  ]);
-  showTokenWarn(budgetInfo);
+  if(!runSeq){
+    const budgetInfo=checkTokenBudget([
+      {ctx:compCtx,maxTok:2800},{ctx:secCtx,maxTok:2800},
+      {ctx:privCtx,maxTok:2800},{ctx:legalCtx,maxTok:2800},{ctx:synthCtx,maxTok:3500}
+    ]);
+    showTokenWarn(budgetInfo);
+  }
 
-  document.getElementById('smsgbar').textContent='Running 5 parallel analysis agents…';
   CrawlPanel.showAgents();
-  const wrapAgent=(name,p)=>{
-    CrawlPanel.setAgent(name,'running');
-    return p.then(r=>{CrawlPanel.setAgent(name,'done');return r;}).catch(e=>{CrawlPanel.setAgent(name,'done');throw e;});
-  };
-  const [complianceR,securityR,privacyR,legalR,synthR]=await Promise.allSettled([
-    wrapAgent('compliance', callDomainAgent('compliance',vendor,product,domain,compCtx,allowedUrls,2800)),
-    wrapAgent('security',   callDomainAgent('security',vendor,product,domain,secCtx,allowedUrls,2800)),
-    wrapAgent('privacy',    callDomainAgent('privacy',vendor,product,domain,privCtx,allowedUrls,2800)),
-    wrapAgent('legal',      callDomainAgent('legal',vendor,product,domain,legalCtx,allowedUrls,2800)),
-    wrapAgent('synthesis',  callDomainAgent('synthesis',vendor,product,domain,synthCtx,allowedUrls,3500))
-  ]);
+  let complianceR,securityR,privacyR,legalR,synthR;
+
+  if(runSeq){
+    // Sequential execution for rate-limited providers — each agent gets the full TPM budget
+    document.getElementById('smsgbar').textContent='Running analysis agents (sequential mode for rate limit)…';
+    const agentDefs=[
+      {name:'compliance',ctx:compCtx,maxTok:2200},
+      {name:'security',  ctx:secCtx, maxTok:2200},
+      {name:'privacy',   ctx:privCtx,maxTok:2200},
+      {name:'legal',     ctx:legalCtx,maxTok:2200},
+      {name:'synthesis', ctx:synthCtx,maxTok:2800},
+    ];
+    const settled=[];
+    for(const ag of agentDefs){
+      CrawlPanel.setAgent(ag.name,'running');
+      setStatusMsg(`AI: analyzing ${ag.name}…`);
+      try{
+        const v=await callDomainAgent(ag.name,vendor,product,domain,ag.ctx,allowedUrls,ag.maxTok);
+        settled.push({status:'fulfilled',value:v});
+        CrawlPanel.setAgent(ag.name,'done');
+      }catch(e){
+        settled.push({status:'rejected',reason:e});
+        CrawlPanel.setAgent(ag.name,'done');
+      }
+      // Small pause between agents to let TPM bucket refill slightly
+      if(settled.length<agentDefs.length) await sleep(800);
+    }
+    [complianceR,securityR,privacyR,legalR,synthR]=settled;
+  }else{
+    // Parallel execution for high-TPM providers (OpenAI, Gemini, Anthropic, etc.)
+    document.getElementById('smsgbar').textContent='Running 5 parallel analysis agents…';
+    const wrapAgent=(name,p)=>{
+      CrawlPanel.setAgent(name,'running');
+      return p.then(r=>{CrawlPanel.setAgent(name,'done');return r;}).catch(e=>{CrawlPanel.setAgent(name,'done');throw e;});
+    };
+    [complianceR,securityR,privacyR,legalR,synthR]=await Promise.allSettled([
+      wrapAgent('compliance', callDomainAgent('compliance',vendor,product,domain,compCtx,allowedUrls,2800)),
+      wrapAgent('security',   callDomainAgent('security',vendor,product,domain,secCtx,allowedUrls,2800)),
+      wrapAgent('privacy',    callDomainAgent('privacy',vendor,product,domain,privCtx,allowedUrls,2800)),
+      wrapAgent('legal',      callDomainAgent('legal',vendor,product,domain,legalCtx,allowedUrls,2800)),
+      wrapAgent('synthesis',  callDomainAgent('synthesis',vendor,product,domain,synthCtx,allowedUrls,3500))
+    ]);
+  }
   hideTokenWarn();
   document.getElementById('smsgbar').textContent='Merging agent results…';
   const get=r=>r.status==='fulfilled'&&r.value?r.value:{};
