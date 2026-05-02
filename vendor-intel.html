@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VendorLens — Enterprise Vendor Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:#eef7f2;color:#091c11;min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+:root{
+  --ink:#091c11;--ink2:#245034;--ink3:#4d7a5e;--ink4:#8ab89b;
+  --page:#eef7f2;--s:#fff;--s2:#e8f3ec;--s3:#d8ecdf;
+  --e:#c2d9ca;--e2:#a8ccb6;
+  --g1:#15a34a;--g2:#22c55e;--gg:rgba(21,163,74,.1);
+  --red:#dc2626;--rbg:#fef2f2;--re:#fecaca;
+  --amb:#d97706;--abg:#fffbeb;--ae:#fde68a;
+  --blu:#2563eb;--bbg:#eff6ff;--be:#bfdbfe;
+  --r:12px;--rsm:8px;--rxs:6px;
+  --sh:0 1px 3px rgba(9,28,17,.05),0 3px 12px rgba(9,28,17,.04);
+  --sh2:0 4px 28px rgba(9,28,17,.12);
+}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--ink);color:#e8f3ec;height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300;box-shadow:0 2px 16px rgba(0,0,0,.3)}
+.tb-brand{display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-size:17px;font-weight:700;letter-spacing:-.02em;color:inherit}
+.tb-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(21,163,74,.4)}
+.tb-mark svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.tb-r{display:flex;align-items:center;gap:8px}
+.tb-pill{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);border-radius:8px;padding:5px 12px;font-size:11px;font-family:'DM Mono',monospace;color:#e8f3ec;cursor:pointer;transition:background .15s;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.tb-pill:hover{background:rgba(255,255,255,.15)}
+.tb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tb-dot.ok{background:#6fcf8a}.tb-dot.no{background:#e07060}
+
+/* ── MODALS ── */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.mbg.on{display:flex}
+.modal{background:var(--s);border-radius:var(--r);width:100%;max-width:500px;box-shadow:var(--sh2);overflow:hidden;animation:mslide .2s ease}
+.modal.wide{max-width:680px}
+@keyframes mslide{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.mh{background:var(--s2);border-bottom:1px solid var(--e);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mt{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.02em}
+.mx{background:none;border:1px solid var(--e);border-radius:6px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--ink3);transition:all .15s;flex-shrink:0}
+.mx:hover{border-color:var(--red);color:var(--red)}
+.mb{padding:20px}
+.mb-p{font-size:13px;color:var(--ink3);margin-bottom:16px;line-height:1.6}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.pc{border:2px solid var(--e);border-radius:var(--rsm);padding:12px;cursor:pointer;transition:all .15s;position:relative}
+.pc:hover{border-color:var(--e2)}.pc.on{border-color:var(--g1);background:var(--gg)}
+.pc.on::after{content:'✓';position:absolute;top:7px;right:9px;font-size:10px;font-weight:700;color:var(--g1);font-family:'DM Mono',monospace}
+.pc-logo{font-size:17px;margin-bottom:4px}.pc-name{font-family:'Syne',sans-serif;font-weight:600;font-size:13px;margin-bottom:1px}.pc-sub{font-size:11px;color:var(--ink3)}
+.mrow{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.mrow label{font-size:12px;font-weight:500;color:var(--ink2);white-space:nowrap}
+.mrow select,.mrow input,.krow input{background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rxs);color:var(--ink);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;outline:none;transition:border-color .15s}
+.mrow select,.mrow input{flex:1;min-width:0}.mrow select{-webkit-appearance:none;cursor:pointer}
+.mrow select:focus,.mrow input:focus,.krow input:focus{border-color:var(--g1);box-shadow:0 0 0 3px rgba(21,163,74,.1)}
+.krow{display:flex;gap:8px;margin-bottom:12px}.krow input{flex:1}
+.krow input::placeholder{color:var(--ink4);font-family:'DM Sans',sans-serif}
+.ksave{background:var(--g1);color:#fff;border:none;border-radius:var(--rxs);padding:9px 15px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s}
+.ksave:hover{background:#128f3c}
+.mnote{font-size:11px;color:var(--ink4);background:var(--s2);border:1px solid var(--e);border-radius:var(--rxs);padding:9px 12px;line-height:1.6}
+.mnote a{color:var(--g1);text-decoration:none}.mnote a:hover{text-decoration:underline}
+.mnote code{font-family:'DM Mono',monospace;background:var(--s3);padding:0 4px;border-radius:3px;font-size:10px}
+
+/* ── PAGE ── */
+.page{max-width:1020px;margin:0 auto;padding:32px 22px 80px}
+
+/* ── HERO ── */
+.hero{text-align:center;margin-bottom:26px}
+.hero-ey{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--g1);margin-bottom:10px;display:inline-flex;align-items:center;gap:8px}
+.hero-ey::before,.hero-ey::after{content:'';width:18px;height:1px;background:var(--g1);opacity:.5}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(24px,4vw,38px);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin-bottom:7px}
+.hero h1 em{font-style:italic;color:var(--g1)}
+.hero-sub{font-size:13px;color:var(--ink3);font-weight:300}
+
+/* ── SCRAPE BANNER ── */
+.sbn{display:none;background:var(--s);border:1px solid var(--e);border-radius:var(--rsm);padding:10px 15px;margin-bottom:12px;font-size:12px;font-family:'DM Mono',monospace;color:var(--ink3);gap:8px;align-items:center;flex-wrap:wrap}
+.sbn.on{display:flex}
+.sdots{display:flex;gap:3px}.sd{width:4px;height:4px;border-radius:50%;background:var(--g2);animation:sdot 1.2s infinite}
+.sd:nth-child(2){animation-delay:.2s}.sd:nth-child(3){animation-delay:.4s}
+@keyframes sdot{0%,100%{opacity:.2}50%{opacity:1}}
+.ssrcs{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.ssrc{font-size:10px;background:var(--s3);border:1px solid var(--e);border-radius:4px;padding:2px 7px;color:var(--ink2);transition:all .3s}
+.ssrc.done{border-color:rgba(21,163,74,.4);background:var(--gg);color:var(--g1)}
+.ssrc.fail{border-color:var(--re);background:var(--rbg);color:var(--red)}
+
+/* ── INPUT CARD ── */
+.icard{background:var(--s);border:1px solid var(--e);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:14px}
+.ich{padding:15px 20px;border-bottom:1px solid var(--e);background:var(--s2);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ict{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.02em}
+.ics{font-size:12px;color:var(--ink3)}
+.icb{padding:18px 20px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){.f2{grid-template-columns:1fr}}
+.fl label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.ac{font-family:'DM Mono',monospace;font-size:9px;background:var(--gg);color:var(--g1);border:1px solid rgba(21,163,74,.2);border-radius:4px;padding:1px 5px}
+.fl input{width:100%;background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rxs);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.fl input:focus{border-color:var(--g1);box-shadow:0 0 0 3px rgba(21,163,74,.1);background:var(--s)}
+.fl input::placeholder{color:var(--ink4)}
+.wkbar{display:flex;align-items:flex-start;gap:10px;background:var(--s2);border-top:1px solid var(--e);padding:10px 20px;font-size:12px;color:var(--ink3);line-height:1.6}
+.wkchip{font-family:'DM Mono',monospace;font-size:10px;background:#fff;color:var(--ink2);border:1px solid var(--e2);border-radius:4px;padding:2px 7px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.wkbar code{font-family:'DM Mono',monospace;font-size:10px;background:var(--s);border:1px solid var(--e);border-radius:3px;padding:0 5px;color:var(--ink2)}
+
+/* ── RUN BTN ── */
+.rbtn{width:100%;padding:13px;background:var(--g1);color:#fff;border:none;border-radius:var(--rsm);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(21,163,74,.3);margin-bottom:14px}
+.rbtn:hover:not(:disabled){background:#128f3c;box-shadow:0 4px 20px rgba(21,163,74,.4);transform:translateY(-1px)}
+.rbtn:active:not(:disabled){transform:translateY(0)}
+.rbtn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.rbtn svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── STATUS ── */
+.sbar{display:none;align-items:center;gap:12px;background:var(--s);border:1px solid var(--e);border-radius:var(--rsm);padding:12px 18px;margin-bottom:14px}
+.sbar.on{display:flex}
+.spin{width:14px;height:14px;border:2px solid var(--e);border-top-color:var(--g1);border-radius:50%;animation:spin .75s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.smsg{font-size:13px;color:var(--ink2)}
+.pips{display:flex;gap:4px;margin-left:auto}
+.pip{width:5px;height:5px;border-radius:50%;background:var(--e)}
+.pip.done{background:var(--g1)}.pip.live{background:var(--g2);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── RESULTS ── */
+.res{display:none}.res.on{display:block}
+
+/* ── SCORECARD ── */
+.scorecard{background:var(--s);border:1px solid var(--e);border-radius:var(--r);padding:24px;box-shadow:var(--sh);margin-bottom:3px;display:grid;grid-template-columns:auto 1fr auto;gap:28px;align-items:start}
+@media(max-width:700px){.scorecard{grid-template-columns:1fr;gap:18px}}
+.sc-l{display:flex;align-items:flex-start;gap:16px}
+.co-av{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#fff;box-shadow:0 2px 12px rgba(21,163,74,.25);flex-shrink:0;overflow:hidden}
+.co-av img{width:100%;height:100%;object-fit:cover}
+.co-name{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.co-logo{font-size:10px;color:var(--ink4);font-family:'DM Mono',monospace;background:var(--s2);border:1px solid var(--e);border-radius:4px;padding:2px 6px}
+.co-prod{font-size:12px;color:var(--ink4);font-family:'DM Mono',monospace;margin-bottom:8px}
+.sc-acts{display:flex;gap:6px;flex-wrap:wrap}
+.cbtn{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:6px 11px;border-radius:var(--rxs);border:1px solid var(--e);background:var(--s2);color:var(--ink3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.cbtn:hover,.cbtn.ac{border-color:var(--g1);color:var(--g1);background:var(--gg)}
+/* Freshness indicator */
+.freshness-badge{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:10px;border-radius:100px;padding:3px 9px;border:1px solid;cursor:pointer;transition:all .15s}
+.freshness-badge.fresh{border-color:rgba(21,163,74,.35);background:var(--gg);color:var(--g1)}
+.freshness-badge.stale{border-color:var(--ae);background:var(--abg);color:var(--amb)}
+.freshness-badge.very-stale{border-color:var(--re);background:var(--rbg);color:var(--red)}
+.freshness-badge.unknown{border-color:var(--e);background:var(--s2);color:var(--ink4)}
+.freshness-badge:hover{filter:brightness(.95)}
+.freshness-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+.sc-m{display:flex;gap:10px;flex-wrap:wrap;align-self:center}
+.ds{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm);padding:12px 14px;text-align:center;min-width:90px;flex:0 0 auto}
+.ds-l{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--ink4);margin-bottom:4px}
+.ds-v{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.02em}
+.ds-v.A{color:#15803d}.ds-v.B{color:#16a34a}.ds-v.C{color:var(--amb)}.ds-v.D{color:#ea580c}.ds-v.F{color:var(--red)}.ds-v.NA{color:var(--ink4)}
+.sc-r{display:flex;flex-direction:column;align-items:center;gap:10px}
+.ring{position:relative;width:88px;height:88px}
+.ring svg{width:88px;height:88px;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--e);stroke-width:7}
+.ring-fill{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1.2s ease}
+.ring-lbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-n{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em}
+.ring-s{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--ink4);margin-top:1px}
+
+/* ── LEGEND POPOVER ── */
+.legend-btn{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:5px 10px;border-radius:var(--rxs);border:1px solid var(--e);background:var(--s2);color:var(--ink3);cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.legend-btn:hover{border-color:var(--g1);color:var(--g1)}
+.legend-card{position:absolute;top:calc(100% + 8px);right:0;background:var(--s);border:1px solid var(--e);border-radius:var(--rsm);box-shadow:var(--sh2);padding:16px;z-index:200;width:280px;display:none}
+.legend-card.on{display:block}
+.legend-wrap{position:relative;display:inline-block}
+.legend-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--e)}
+.legend-row:last-child{border-bottom:none;padding-bottom:0}
+.lg-grade{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;width:24px;flex-shrink:0;letter-spacing:-.02em}
+.lg-grade.A{color:#15803d}.lg-grade.B{color:#16a34a}.lg-grade.C{color:var(--amb)}.lg-grade.D{color:#ea580c}.lg-grade.F{color:var(--red)}.lg-grade.NA{color:var(--ink4)}
+.lg-text{font-size:12px;color:var(--ink2);line-height:1.5}
+.lg-text strong{display:block;font-weight:500;font-size:12px;color:var(--ink)}
+
+/* ── VERDICT ── */
+.verdict{border-radius:var(--rsm);padding:13px 17px;margin-bottom:3px;display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.6}
+.verdict.low{background:#f0fdf4;border:1px solid #bbf7d0;color:#14532d}
+.verdict.medium{background:var(--abg);border:1px solid var(--ae);color:#78350f}
+.verdict.high{background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12}
+.verdict.critical{background:var(--rbg);border:1px solid var(--re);color:#7f1d1d}
+.vi{font-size:20px;flex-shrink:0}.vb strong{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;display:block;margin-bottom:2px}
+
+/* ── TABS ── */
+.tabs-row{display:flex;background:var(--s);border-left:1px solid var(--e);border-right:1px solid var(--e);border-bottom:1px solid var(--e);overflow-x:auto}
+.tab{font-size:12.5px;padding:11px 15px;color:var(--ink4);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;user-select:none}
+.tab:hover{color:var(--ink2)}.tab.on{color:var(--g1);border-bottom-color:var(--g1);font-weight:500}
+
+/* ── PANELS ── */
+.pwrap{background:var(--s);border:1px solid var(--e);border-top:none;border-radius:0 0 var(--r) var(--r);box-shadow:var(--sh)}
+.panel{display:none;padding:22px 24px}.panel.on{display:block}
+.sec{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.12em;color:var(--ink4);padding-bottom:9px;margin-bottom:14px;border-bottom:1px solid var(--e)}
+.sec-gap{margin-top:24px}
+
+/* ── FRESHNESS DETAIL PANEL inside tab ── */
+.freshness-panel{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm);padding:16px;margin-bottom:20px}
+.fp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.fp-title{font-family:'Syne',sans-serif;font-weight:600;font-size:14px;letter-spacing:-.02em}
+.fp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.fp-item{background:var(--s);border:1px solid var(--e);border-radius:var(--rxs);padding:10px 12px}
+.fp-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--ink4);margin-bottom:4px}
+.fp-val{font-size:13px;color:var(--ink);display:flex;align-items:center;gap:6px}
+.fp-check{font-size:12px}
+.fp-age{font-size:11px;color:var(--ink3);margin-top:2px;font-family:'DM Mono',monospace}
+.verify-btn{font-family:'DM Mono',monospace;font-size:10px;padding:5px 10px;border-radius:var(--rxs);border:1px solid var(--be);background:var(--bbg);color:var(--blu);cursor:pointer;transition:all .15s;white-space:nowrap}
+.verify-btn:hover{background:var(--be)}
+.verify-btn.running{opacity:.6;pointer-events:none}
+
+/* ── NEWS / CHANGELOG LOG ── */
+.news-item{border-left:3px solid var(--e);padding:10px 14px;margin-bottom:10px;background:var(--s2);border-radius:0 var(--rxs) var(--rxs) 0}
+/* ── VERIFICATION LOG ── */
+.vlog{max-height:400px;overflow-y:auto;border:1px solid var(--e);border-radius:var(--rsm);background:var(--s2)}
+.vlog-item{padding:10px 14px;border-bottom:1px solid var(--e);font-size:12px;line-height:1.6}
+.vlog-item:last-child{border-bottom:none}
+.vlog-item.added{border-left:3px solid var(--g1);background:rgba(21,163,74,.05)}
+.vlog-item.changed{border-left:3px solid var(--amb);background:rgba(217,119,6,.05)}
+.vlog-item.removed{border-left:3px solid var(--red);background:rgba(220,38,38,.05)}
+.vlog-ts{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink4);margin-bottom:4px}
+.vlog-field{font-weight:500;color:var(--ink);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.vlog-val{color:var(--ink3);margin-top:2px}
+.vlog-val.old{text-decoration:line-through;opacity:.6;margin-right:8px}
+.vlog-val.new{color:var(--g1)}
+.vlog-src{font-size:10px;color:var(--ink4);margin-top:4px;font-family:'DM Mono',monospace;word-break:break-all}
+.vlog-conf{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:3px;font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase}
+.vlog-conf.high{background:var(--gg);color:var(--g1)}
+.vlog-conf.med{background:var(--abg);color:var(--amb)}
+.vlog-conf.low{background:var(--e);color:var(--ink3)}
+.news-item.breach{border-left-color:var(--red)}.news-item.regulatory{border-left-color:var(--amb)}.news-item.product{border-left-color:var(--g1)}.news-item.acquisition{border-left-color:var(--blu)}.news-item.financial{border-left-color:#7c3aed}.news-item.leadership{border-left-color:var(--ink3)}
+.news-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink4);margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.news-tag{font-size:9px;border-radius:4px;padding:1px 6px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.news-tag.breach{background:var(--rbg);color:var(--red);border:1px solid var(--re)}
+.news-tag.regulatory{background:var(--abg);color:var(--amb);border:1px solid var(--ae)}
+.news-tag.product{background:var(--gg);color:var(--g1);border:1px solid rgba(21,163,74,.3)}
+.news-tag.acquisition{background:var(--bbg);color:var(--blu);border:1px solid var(--be)}
+.news-tag.financial{background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe}
+.news-tag.leadership{background:var(--s3);color:var(--ink2);border:1px solid var(--e)}
+.news-headline{font-size:13px;color:var(--ink);font-weight:500;line-height:1.4;margin-bottom:3px}
+.news-body{font-size:12px;color:var(--ink3);line-height:1.5}
+.news-empty{text-align:center;padding:32px;color:var(--ink4);font-size:13px}
+
+/* ── DOC LINKS ── */
+.doclinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:16px}
+.doclink{display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm);padding:11px 13px;text-decoration:none;color:var(--ink);transition:all .15s}
+.doclink:hover{border-color:var(--g1);background:var(--gg);color:var(--g1)}
+.doclink.missing{opacity:.45;cursor:default;pointer-events:none}
+.doclink:hover:not(.missing) .dl-icon{background:var(--g1);color:#fff}
+.dl-icon{width:30px;height:30px;border-radius:7px;background:var(--s3);border:1px solid var(--e);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .15s}
+.dl-info{}
+.dl-title{font-size:12px;font-weight:500;line-height:1.3}
+.dl-sub{font-size:11px;color:var(--ink4);margin-top:1px}
+.doclink:not(.missing) .dl-sub{color:var(--g1)}
+
+/* ── INFO CELLS ── */
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.icell{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm);padding:11px 13px}
+.ic-l{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.09em;color:var(--ink4);font-family:'DM Mono',monospace;margin-bottom:5px}
+.ic-v{font-size:13px;color:var(--ink);line-height:1.5}
+.ic-v.mono{font-family:'DM Mono',monospace;font-size:11px;word-break:break-all}
+.ic-v a{color:var(--g1);text-decoration:none}.ic-v a:hover{text-decoration:underline}
+
+/* ── RISK TILES ── */
+.rtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px}
+.rtile{background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rsm);padding:13px 14px;display:flex;flex-direction:column;gap:4px}
+.rt-l{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--ink4);font-family:'DM Mono',monospace}
+.rt-v{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.rt-v.yes{color:var(--red)}.rt-v.no{color:var(--g1)}.rt-v.unk{color:var(--amb)}
+.rt-v.low{color:var(--g1)}.rt-v.medium{color:var(--amb)}.rt-v.high{color:#ea580c}.rt-v.critical{color:var(--red)}
+.rt-s{font-size:11px;color:var(--ink3);line-height:1.5;margin-top:2px}
+
+/* ── CERTS ── */
+.certs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.cert{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:6px 11px;border-radius:var(--rxs);border:1.5px solid;display:flex;align-items:center;gap:6px}
+.cert.yes{border-color:rgba(21,163,74,.3);background:var(--gg);color:var(--g1)}
+.cert.no{border-color:var(--e);background:var(--s2);color:var(--ink4)}
+.cert.unk{border-color:var(--ae);background:var(--abg);color:var(--amb)}
+.cert-d{width:5px;height:5px;border-radius:50%}
+.cert.yes .cert-d{background:var(--g1)}.cert.no .cert-d{background:var(--ink4)}.cert.unk .cert-d{background:var(--amb)}
+
+/* ── FLAGS ── */
+.flags{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.flag{border-radius:var(--rxs);padding:11px 13px;display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.5}
+.flag.red{background:var(--rbg);border:1px solid var(--re);color:#7f1d1d}
+.flag.amber{background:var(--abg);border:1px solid var(--ae);color:#78350f}
+.flag.green{background:#f0fdf4;border:1px solid #bbf7d0;color:#14532d}
+.flag-ico{font-size:14px;flex-shrink:0;margin-top:1px}
+.flag-txt strong{font-weight:600;display:block;margin-bottom:2px}
+
+/* ── SCORE TABLE ── */
+.stbl{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px}
+.stbl th{text-align:left;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink4);padding:8px 12px;border-bottom:1px solid var(--e);font-weight:500}
+.stbl td{padding:9px 12px;border-bottom:1px solid var(--e);color:var(--ink);vertical-align:middle}
+.stbl tr:last-child td{border-bottom:none}
+.stbl tr:hover td{background:var(--s2)}
+.grade{font-family:'Syne',sans-serif;font-weight:700;font-size:15px}
+.bar-wrap{display:flex;align-items:center;gap:8px}
+.bar-bg{flex:1;height:5px;background:var(--e);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 1.2s ease}
+.pct{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3);min-width:28px;text-align:right}
+
+/* ── PROSE ── */
+.prose{font-size:14px;color:var(--ink2);line-height:1.75}
+.prose p{margin-bottom:10px}.prose ul{padding-left:18px;margin-bottom:10px}
+.prose li{margin-bottom:4px}.prose strong{color:var(--ink);font-weight:500}
+
+/* ── JSON ── */
+.jw{position:relative}
+.jcp{position:absolute;top:10px;right:10px;font-family:'DM Mono',monospace;font-size:10px;padding:5px 11px;border-radius:var(--rxs);border:1px solid var(--e);background:var(--s);color:var(--ink3);cursor:pointer;transition:all .15s}
+.jcp:hover{border-color:var(--g1);color:var(--g1)}
+pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm);padding:16px;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.8;color:var(--ink3);overflow:auto;max-height:500px;white-space:pre-wrap;word-break:break-word}
+.jk{color:#166534}.js{color:#92400e}.jn{color:var(--g1)}.jb{color:#1d4ed8}.jnil{color:var(--ink4)}
+
+/* ── DISC ── */
+.disc{margin-top:16px;padding:11px 13px;border-radius:var(--rxs);border:1px solid var(--ae);background:var(--abg);font-size:12px;color:var(--amb);line-height:1.6;display:flex;gap:8px}
+
+/* ── EMPTY ── */
+.empty{display:flex;flex-direction:column;align-items:center;padding:52px 20px;text-align:center}
+.ei{width:44px;height:44px;border-radius:11px;background:var(--s3);border:1px solid var(--e);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.ei svg{width:20px;height:20px;stroke:var(--ink4);fill:none;stroke-width:1.5}
+.empty h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:600;color:var(--ink);margin-bottom:5px}
+.empty p{font-size:13px;color:var(--ink3)}
+
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--e2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-mark"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/><path d="M8 11h6M11 8v6"/></svg></div>
+    VendorLens
+  </div>
+  <div class="tb-r">
+    <div class="tb-pill" id="provPill" onclick="openModal('ai')">
+      <span class="tb-dot no" id="provDot"></span>
+      <span id="provLabel">Configure AI Provider</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── AI MODAL ── -->
+<div class="mbg" id="mbg-ai" onclick="if(event.target===this)closeModal('ai')">
+  <div class="modal">
+    <div class="mh"><div class="mt">AI Provider</div><button class="mx" onclick="closeModal('ai')">✕</button></div>
+    <div class="mb">
+      <p class="mb-p">Select provider and paste your API key. Keys stay in your browser's <code>localStorage</code> only.</p>
+      <div class="pgrid">
+        <div class="pc on" id="pc-groq"      onclick="selProv('groq')"><div class="pc-logo">⚡</div><div class="pc-name">Groq</div><div class="pc-sub">Free · Fast inference</div></div>
+        <div class="pc"    id="pc-gemini"    onclick="selProv('gemini')"><div class="pc-logo">✦</div><div class="pc-name">Google Gemini</div><div class="pc-sub">Free tier available</div></div>
+        <div class="pc"    id="pc-openai"    onclick="selProv('openai')"><div class="pc-logo">◆</div><div class="pc-name">OpenAI</div><div class="pc-sub">Paid</div></div>
+        <div class="pc"    id="pc-anthropic" onclick="selProv('anthropic')"><div class="pc-logo">◈</div><div class="pc-name">Anthropic (Claude)</div><div class="pc-sub">Paid</div></div>
+      </div>
+      <div class="mrow"><label>Model</label><select id="msel"></select></div>
+      <div class="krow"><input type="password" id="kInput" placeholder="Paste API key…" autocomplete="off"/><button class="ksave" onclick="saveKey()">Save</button></div>
+      <div class="mrow"><label>Open-source LLM scraper endpoint</label><input type="text" id="scraperInput" placeholder="http://localhost:11235 (Crawl4AI)" autocomplete="off" spellcheck="false"/><button class="ksave" onclick="testScraperEndpoint()">Test</button></div>
+      <div class="mnote">Optional: run Crawl4AI locally and enter its base URL here. VendorLens will use it first, then fall back to browser proxy scraping.</div>
+      <div class="mnote" id="mnote"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FRESHNESS CHECK MODAL ── -->
+<div class="mbg" id="mbg-fresh" onclick="if(event.target===this)closeModal('fresh')">
+  <div class="modal wide">
+    <div class="mh"><div class="mt">🔍 Data Freshness Verification</div><button class="mx" onclick="closeModal('fresh')">✕</button></div>
+    <div class="mb">
+      <p class="mb-p">Re-checking key data points against live sources to verify accuracy and recency. Fields that have changed since initial fetch are highlighted.</p>
+      <div id="freshDetail"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAGE ── -->
+<div class="page">
+
+  <div class="hero">
+    <div class="hero-ey">Enterprise Procurement Intelligence</div>
+    <h1>Vendor<em>Lens</em></h1>
+    <p class="hero-sub">Full vendor due diligence — legal, compliance, security, privacy, financial &amp; operational — scored, sourced &amp; verified.</p>
+  </div>
+
+  <div class="sbn" id="sbn"><div class="sdots"><div class="sd"></div><div class="sd"></div><div class="sd"></div></div><span id="smsg2">Fetching…</span><div class="ssrcs" id="ssrcs"></div></div>
+
+  <div class="icard">
+    <div class="ich"><div><div class="ict">Vendor Research</div><div class="ics">Enter vendor + product — everything else is researched &amp; scored automatically</div></div></div>
+    <div class="icb">
+      <div class="f2">
+        <div class="fl"><label>Vendor Name or URL <span style="color:var(--g1)">*</span> <span class="ac">auto</span></label><input type="text" id="vInput" placeholder="e.g. Workday or workday.com" autocomplete="off" spellcheck="false"/></div>
+        <div class="fl"><label>Product / Service <span style="color:var(--g1)">*</span> <span class="ac">auto</span></label><input type="text" id="pInput" placeholder="e.g. Workday HCM, Payroll Module" autocomplete="off" spellcheck="false"/></div>
+      </div>
+    </div>
+    <div class="wkbar"><span class="wkchip">Workato</span><span>Auto-fill: <code>?vendor=Workday&amp;product=HCM&amp;autorun=1</code> or <code>window.WORKATO_PAYLOAD = {vendor, product, autorun:true}</code></span></div>
+  </div>
+
+  <button class="rbtn" id="runBtn" onclick="run()">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/></svg>
+    <span id="btnLbl">Run Full Vendor Assessment</span>
+  </button>
+
+  <div class="sbar" id="sbar"><div class="spin"></div><span class="smsg" id="smsgbar">Starting…</span><div class="pips"><div class="pip" id="p0"></div><div class="pip" id="p1"></div><div class="pip" id="p2"></div><div class="pip" id="p3"></div><div class="pip" id="p4"></div><div class="pip" id="p5"></div></div></div>
+
+  <!-- RESULTS -->
+  <div class="res" id="res">
+
+    <!-- Scorecard -->
+    <div class="scorecard">
+      <div class="sc-l">
+        <div class="co-av" id="coAv">?</div>
+        <div>
+          <div class="co-name" id="coName">—</div>
+          <div class="co-prod" id="coProd">—</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+            <div class="freshness-badge unknown" id="freshBadge" onclick="openFreshModal()">
+              <span class="freshness-dot"></span><span id="freshLabel">Data age unknown</span>
+            </div>
+            <button class="verify-btn" id="verifyBtn" onclick="runFreshnessCheck()">↻ Verify now</button>
+          </div>
+          <div class="sc-acts">
+            <button class="cbtn" onclick="copyJSON()">⬇ Copy JSON</button>
+            <button class="cbtn ac" onclick="switchTab('json')">JSON Export</button>
+            <button class="cbtn" onclick="switchTab('log')">📰 Vendor Log</button>
+          </div>
+        </div>
+      </div>
+      <div class="sc-m" id="domainScores"></div>
+      <div class="sc-r">
+        <div class="ring">
+          <svg viewBox="0 0 88 88"><circle class="ring-bg" cx="44" cy="44" r="37"/><circle class="ring-fill" id="ringFill" cx="44" cy="44" r="37" stroke-dasharray="232.5" stroke-dashoffset="232.5"/></svg>
+          <div class="ring-lbl"><div class="ring-n" id="ringN">—</div><div class="ring-s">/ 100</div></div>
+        </div>
+        <div class="legend-wrap">
+          <button class="legend-btn" onclick="toggleLegend()">⬡ Score Legend</button>
+          <div class="legend-card" id="legendCard">
+            <div style="font-family:'Syne',sans-serif;font-weight:600;font-size:12px;margin-bottom:10px;color:var(--ink)">Scoring Guide</div>
+            <div class="legend-row"><div class="lg-grade A">A</div><div class="lg-text"><strong>Excellent (90–100%)</strong>Industry-leading posture. Low risk. Recommend approval.</div></div>
+            <div class="legend-row"><div class="lg-grade B">B</div><div class="lg-text"><strong>Good (75–89%)</strong>Above average controls. Minor gaps only. Approve with standard terms.</div></div>
+            <div class="legend-row"><div class="lg-grade C">C</div><div class="lg-text"><strong>Moderate (55–74%)</strong>Noticeable gaps. Acceptable with conditions &amp; remediation plan.</div></div>
+            <div class="legend-row"><div class="lg-grade D">D</div><div class="lg-text"><strong>Weak (35–54%)</strong>Significant deficiencies. Escalate for senior review before approval.</div></div>
+            <div class="legend-row"><div class="lg-grade F">F</div><div class="lg-text"><strong>Critical (&lt;35%)</strong>Unacceptable risk. Reject or require major remediation first.</div></div>
+            <div class="legend-row"><div class="lg-grade NA">NA</div><div class="lg-text"><strong>Not Applicable</strong>Domain not relevant to this vendor / product type.</div></div>
+            <div style="margin-top:10px;font-size:11px;color:var(--ink4);line-height:1.5">Overall score = weighted average of all applicable domains. Access Risk &amp; Security carry higher weight.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="verdict" id="verdict">
+      <div class="vi" id="vi"></div>
+      <div class="vb"><strong id="vtitle"></strong><span id="vtext"></span></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-row">
+      <div class="tab on" id="tab-summary"    onclick="switchTab('summary')">Summary &amp; Flags</div>
+      <div class="tab"    id="tab-risk"        onclick="switchTab('risk')">Access &amp; Risk</div>
+      <div class="tab"    id="tab-legal"       onclick="switchTab('legal')">Legal &amp; Financial</div>
+      <div class="tab"    id="tab-compliance"  onclick="switchTab('compliance')">Compliance</div>
+      <div class="tab"    id="tab-security"    onclick="switchTab('security')">Security</div>
+      <div class="tab"    id="tab-privacy"     onclick="switchTab('privacy')">Privacy &amp; Data</div>
+      <div class="tab"    id="tab-operational" onclick="switchTab('operational')">Operational</div>
+      <div class="tab"    id="tab-sources"     onclick="switchTab('sources')">Sources &amp; Evidence</div>
+      <div class="tab"    id="tab-docs"        onclick="switchTab('docs')">Documents &amp; Links</div>
+      <div class="tab"    id="tab-log"         onclick="switchTab('log')">Vendor Log</div>
+      <div class="tab"    id="tab-verify"      onclick="switchTab('verify')">Verification Log</div>
+      <div class="tab"    id="tab-crawl"       onclick="switchTab('crawl')">Crawl Log</div>
+      <div class="tab"    id="tab-json"        onclick="switchTab('json')">JSON</div>
+    </div>
+
+    <div class="pwrap">
+
+      <!-- SUMMARY -->
+      <div class="panel on" id="panel-summary">
+        <div class="freshness-panel" id="fpanel">
+          <div class="fp-header">
+            <div class="fp-title">Data Freshness</div>
+            <button class="verify-btn" id="verifyBtn2" onclick="runFreshnessCheck()">↻ Re-verify all fields</button>
+          </div>
+          <div class="fp-grid" id="fpGrid"></div>
+        </div>
+        <div class="sec">Risk Flags</div>
+        <div id="flagsGrid" class="flags"></div>
+        <div class="sec sec-gap">Domain Score Breakdown</div>
+        <table class="stbl" id="scoreTable"></table>
+        <div class="sec sec-gap">OneTrust / Procurement Notes</div>
+        <div class="prose" id="otnotes"></div>
+      </div>
+
+      <!-- ACCESS & RISK -->
+      <div class="panel" id="panel-risk">
+        <div class="sec">System &amp; Data Access</div>
+        <div class="rtiles" id="accessTiles"></div>
+        <div class="sec sec-gap">Data Residency &amp; Storage</div>
+        <div class="igrid" id="storageGrid"></div>
+        <div class="sec sec-gap">Third-Party &amp; Supply Chain Risk</div>
+        <div class="igrid" id="thirdGrid"></div>
+      </div>
+
+      <!-- LEGAL & FINANCIAL -->
+      <div class="panel" id="panel-legal">
+        <div class="sec">Corporate Identity</div><div class="igrid" id="corpGrid"></div>
+        <div class="sec sec-gap">Financial Health &amp; Stability</div><div class="igrid" id="finGrid"></div>
+        <div class="sec sec-gap">Contract &amp; Commercial Terms</div><div class="igrid" id="contractGrid"></div>
+        <div class="sec sec-gap">Legal &amp; Regulatory Issues</div><div class="igrid" id="legalIssGrid"></div>
+      </div>
+
+      <!-- COMPLIANCE -->
+      <div class="panel" id="panel-compliance">
+        <div class="sec">Security &amp; Privacy Certifications</div>
+        <div class="certs" id="certGrid"></div>
+        <div class="sec sec-gap">Regulatory Frameworks &amp; Standards</div><div class="igrid" id="regGrid"></div>
+        <div class="sec sec-gap">Audit &amp; Assessment Details</div><div class="igrid" id="auditGrid"></div>
+        <div class="sec sec-gap">Industry-Specific Requirements</div><div class="igrid" id="industryGrid"></div>
+      </div>
+
+      <!-- SECURITY -->
+      <div class="panel" id="panel-security">
+        <div class="sec">Encryption &amp; Identity</div><div class="igrid" id="encGrid"></div>
+        <div class="sec sec-gap">Vulnerability &amp; Threat Management</div><div class="igrid" id="vulnGrid"></div>
+        <div class="sec sec-gap">Incident Response &amp; Continuity</div><div class="igrid" id="irGrid"></div>
+        <div class="sec sec-gap">Infrastructure &amp; Network Controls</div><div class="igrid" id="infraGrid"></div>
+      </div>
+
+      <!-- PRIVACY & DATA -->
+      <div class="panel" id="panel-privacy">
+        <div class="sec">Data Processing &amp; Agreements</div><div class="igrid" id="dpGrid"></div>
+        <div class="sec sec-gap">Individual Rights &amp; Consent</div><div class="igrid" id="rightsGrid"></div>
+        <div class="sec sec-gap">International Data Transfers</div><div class="igrid" id="xferGrid"></div>
+        <div class="sec sec-gap">AI, Subprocessors &amp; Data Sharing</div><div class="igrid" id="subpGrid"></div>
+      </div>
+
+      <!-- OPERATIONAL -->
+      <div class="panel" id="panel-operational">
+        <div class="sec">Service Reliability &amp; SLA</div><div class="igrid" id="slaGrid"></div>
+        <div class="sec sec-gap">Support &amp; Account Management</div><div class="igrid" id="suppGrid"></div>
+        <div class="sec sec-gap">People Security &amp; HR Controls</div><div class="igrid" id="hrGrid"></div>
+        <div class="sec sec-gap">ESG &amp; Corporate Responsibility</div><div class="igrid" id="esgGrid"></div>
+      </div>
+
+      <!-- SOURCES & EVIDENCE -->
+      <div class="panel" id="panel-sources">
+        <div class="sec">Source Citations &amp; Evidence</div>
+        <div style="margin-bottom:14px;font-size:12px;color:var(--ink3)">Each finding below is linked to its source URL with confidence score and evidence snippet.</div>
+        <div id="sourcesGrid"></div>
+        <div class="sec sec-gap">Scraped Sources</div>
+        <div id="scrapedSources"></div>
+      </div>
+
+      <!-- DOCUMENTS & LINKS -->
+      <div class="panel" id="panel-docs">
+        <div class="sec">Standard Procurement &amp; Legal Documents</div>
+        <div class="doclinks" id="doclinks"></div>
+        <div class="sec sec-gap">Compliance &amp; Security Resources</div>
+        <div class="doclinks" id="complinks"></div>
+        <div class="sec sec-gap">Product &amp; Support Resources</div>
+        <div class="doclinks" id="prodlinks"></div>
+        <div class="disc" style="margin-top:12px">⚠️&ensp;Only links discovered in fetched pages are shown. Missing links mean the document was not found in public sources or may require a direct vendor request.</div>
+      </div>
+
+      <!-- VENDOR LOG / NEWS -->
+      <div class="panel" id="panel-log">
+        <div class="sec">Vendor News, Incidents &amp; Changelog</div>
+        <div id="newsGrid"></div>
+        <div class="disc" style="margin-top:8px">📰&ensp;Events are sourced from vendor public communications, regulatory databases, and press releases as known at assessment time. Run <strong>Verify</strong> to pull more recent events.</div>
+      </div>
+
+      <!-- VERIFICATION LOG -->
+      <div class="panel" id="panel-verify">
+        <div class="sec">Data Verification History</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="verify-btn" onclick="renderVerificationLog()">↻ Refresh Log</button>
+          <button class="verify-btn" onclick="exportVerificationLog()">⬇ Export</button>
+          <span style="font-size:11px;color:var(--ink4);font-family:'DM Mono',monospace" id="verifyStats"></span>
+        </div>
+        <div id="verifyLogGrid" class="vlog"></div>
+        <div class="disc" style="margin-top:12px">🔍&ensp;Each verification run records fetched sources, accepted checks, and rejected changes. Field updates require source evidence and high confidence.</div>
+      </div>
+
+      <!-- JSON -->
+      <div class="panel" id="panel-json">
+        <div class="jw"><button class="jcp" onclick="copyJSON()">Copy</button><pre class="jblk" id="jblk"></pre></div>
+        <div class="disc">⚠️&ensp;All data is sourced from publicly available web pages and AI inference. Independently verify compliance certifications with the vendor before final procurement decision.</div>
+      </div>
+
+      <!-- CRAWL LOG -->
+      <div class="panel" id="panel-crawl">
+        <div class="sec">Web Crawl Activity Log</div>
+        <div style="margin-bottom:14px;font-size:12px;color:var(--ink3)">Full log of every URL the system attempted during this assessment — which were reachable, which returned 404, and what content was extracted. Only reachable URLs are used as evidence.</div>
+        <div id="crawlLogGrid" class="vlog"></div>
+        <div class="disc" style="margin-top:12px">🌐&ensp;URLs that returned 404 or empty content are excluded from the AI analysis and will not appear as document links. This prevents hallucinated URLs from entering the report.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty" id="emptyState">
+    <div class="ei"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/><path d="M8 11h6M11 8v6"/></svg></div>
+    <h3>Ready to assess</h3>
+    <p>Configure an AI provider in the topbar, enter a vendor name and product, then run.</p>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════
+// PROVIDERS
+// ═══════════════════════════════
+const PROVS = {
+  groq:     { name:'Groq',      ep:'https://api.groq.com/openai/v1/chat/completions', models:['llama-3.3-70b-versatile','llama-3.1-70b-versatile','mixtral-8x7b-32768'], def:'llama-3.3-70b-versatile', fmt:'openai', note:'Free tier. Key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>' },
+  gemini:   { name:'Gemini',    ep:'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent', models:['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-pro'], def:'gemini-2.0-flash', fmt:'gemini', note:'Free tier. Key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>' },
+  openai:   { name:'OpenAI',    ep:'https://api.openai.com/v1/chat/completions', models:['gpt-4o','gpt-4o-mini','gpt-4-turbo'], def:'gpt-4o-mini', fmt:'openai', note:'Paid. Key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>' },
+  anthropic:{ name:'Anthropic', ep:'https://api.anthropic.com/v1/messages', models:['claude-sonnet-4-5','claude-haiku-4-5-20251001'], def:'claude-sonnet-4-5', fmt:'anthropic', note:'Paid. Key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>' }
+};
+let curProv  = localStorage.getItem('vl_p')  || 'groq';
+let curModel = localStorage.getItem('vl_m')  || PROVS.groq.def;
+let gData    = null;
+let gLogoUrl = null;
+const gKey = p => localStorage.getItem('vl_k_'+p)||'';
+const getScraperEndpoint = () => (localStorage.getItem('vl_scraper_endpoint')||'').trim().replace(/\/$/,'');
+
+// Vector store for scraped content
+let vectorStore = [];
+
+// Crawl activity log
+let crawlLog = [];
+
+// Workato / URL pre-fill
+(function(){
+  const p = new URLSearchParams(window.location.search);
+  if(p.get('vendor'))  document.getElementById('vInput').value = p.get('vendor');
+  if(p.get('product')) document.getElementById('pInput').value = p.get('product');
+  if(p.get('autorun')==='1'&&p.get('vendor')) setTimeout(run,500);
+})();
+if(window.WORKATO_PAYLOAD){const w=window.WORKATO_PAYLOAD;if(w.vendor)document.getElementById('vInput').value=w.vendor;if(w.product)document.getElementById('pInput').value=w.product;if(w.autorun)setTimeout(run,500);}
+
+// ═══════════════════════════════
+// MODAL
+// ═══════════════════════════════
+function openModal(id){refreshModal();document.getElementById('mbg-'+id).classList.add('on');}
+function closeModal(id){document.getElementById('mbg-'+id).classList.remove('on');}
+function selProv(p){curProv=p;curModel=PROVS[p].def;refreshModal();}
+function refreshModal(){
+  Object.keys(PROVS).forEach(k=>document.getElementById('pc-'+k)?.classList.toggle('on',k===curProv));
+  document.getElementById('msel').innerHTML=PROVS[curProv].models.map(m=>`<option value="${m}" ${m===curModel?'selected':''}>${m}</option>`).join('');
+  document.getElementById('kInput').value=gKey(curProv);
+  document.getElementById('scraperInput').value=getScraperEndpoint();
+  document.getElementById('mnote').innerHTML=PROVS[curProv].note||'';
+}
+function saveKey(){
+  const k=document.getElementById('kInput').value.trim();
+  const scraper=document.getElementById('scraperInput').value.trim().replace(/\/$/,'');
+  if(k)localStorage.setItem('vl_k_'+curProv,k);
+  if(!k&&!gKey(curProv)&&!scraper){alert('Enter an AI key or scraper endpoint.');return;}
+  localStorage.setItem('vl_p',curProv);
+  localStorage.setItem('vl_m',document.getElementById('msel').value);
+  if(scraper)localStorage.setItem('vl_scraper_endpoint',scraper);else localStorage.removeItem('vl_scraper_endpoint');
+  curModel=document.getElementById('msel').value; updateTopbar(); closeModal('ai');
+}
+async function testScraperEndpoint(){
+  const input=document.getElementById('scraperInput');
+  const note=document.getElementById('mnote');
+  const endpoint=input.value.trim().replace(/\/$/,'');
+  if(!endpoint){note.textContent='Enter a Crawl4AI endpoint such as http://localhost:11235.';return;}
+  note.textContent='Testing scraper endpoint…';
+  try{
+    const r=await fetch(endpoint+'/health',{signal:AbortSignal.timeout(6000)});
+    if(r.ok){
+      let health={};
+      try{health=await r.json();}catch(e){}
+      if(health.proxy&&health.targetReachable===false){
+        note.textContent='Proxy is reachable, but Crawl4AI is not running at '+(health.target||'the configured target')+'. Start Crawl4AI first, then test again.';
+        return;
+      }
+      note.textContent='Scraper reachable. Save settings, then run the assessment.';
+      return;
+    }
+    note.textContent='Endpoint responded, but /health returned HTTP '+r.status+'. The /crawl endpoint may still work.';
+  }catch(e){
+    note.textContent='Scraper test failed: '+friendlyScraperError(e)+'. If Crawl4AI is running, this is usually CORS or mixed-content blocking from the browser.';
+  }
+}
+function updateTopbar(){
+  const k=gKey(curProv);
+  document.getElementById('provDot').className='tb-dot '+(k?'ok':'no');
+  document.getElementById('provLabel').textContent=k?`${PROVS[curProv].name} · ${curModel}`:'Configure AI Provider';
+}
+updateTopbar();
+function toggleLegend(){document.getElementById('legendCard').classList.toggle('on');}
+document.addEventListener('click',e=>{if(!e.target.closest('.legend-wrap'))document.getElementById('legendCard')?.classList.remove('on');});
+
+// ═══════════════════════════════
+// SCRAPING
+// ═══════════════════════════════
+const PROXIES=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`];
+async function fetchProxy(url,pi=0){
+  if(pi>=PROXIES.length)throw new Error('proxy_fail');
+  try{
+    const r=await fetch(PROXIES[pi](url),{signal:AbortSignal.timeout(10000)});
+    if(!r.ok)throw new Error('proxy_http_'+r.status);
+    const body=await r.text();
+    try{
+      const d=JSON.parse(body);
+      if(d.status?.http_code&&d.status.http_code>=400)throw new Error('target_http_'+d.status.http_code);
+      return d.contents||d.data||body||'';
+    }catch(e){
+      if(/^target_http_/.test(e.message))throw e;
+      return body||'';
+    }
+  }
+  catch(e){return fetchProxy(url,pi+1);}
+}
+function looksLikeMissingPage(text){
+  return /\b(404|page not found|not found|does not exist|we can't find|cannot be found)\b/i.test((text||'').slice(0,2000));
+}
+function cleanHtml(html){
+  return (html||'')
+    .replace(/<video[\s\S]*?<\/video>/gi,' ')
+    .replace(/<audio[\s\S]*?<\/audio>/gi,' ')
+    .replace(/<picture[\s\S]*?<\/picture>/gi,' ')
+    .replace(/\s(?:alt|title|aria-label)=["']([^"']+)["']/gi,' $1 ')
+    .replace(/<script[\s\S]*?<\/script>/gi,'')
+    .replace(/<style[\s\S]*?<\/style>/gi,'')
+    .replace(/<nav[\s\S]*?<\/nav>/gi,'')
+    .replace(/<footer[\s\S]*?<\/footer>/gi,'')
+    .replace(/<[^>]+>/g,' ')
+    .replace(/your browser does not support the video tag\.?/gi,' ')
+    .replace(/&nbsp;/g,' ')
+    .replace(/&amp;/g,'&')
+    .replace(/\s{3,}/g,'\n\n')
+    .trim()
+    .slice(0,7000);
+}
+function absolutizeUrl(href,base){
+  if(!href||/^(mailto:|tel:|javascript:|#)/i.test(href))return null;
+  try{return new URL(href,base).href.split('#')[0];}catch(e){return null;}
+}
+function extractLinks(html,base){
+  const links=[];
+  const re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while((m=re.exec(html||''))){
+    const url=absolutizeUrl(m[1],base);
+    if(!url)continue;
+    const text=cleanHtml(m[2]).slice(0,120);
+    links.push({url,text});
+  }
+  return links;
+}
+function extractMarkdownLinks(md,base){
+  const links=[];
+  const re=/\[([^\]]{0,160})\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g;
+  let m;
+  while((m=re.exec(md||''))){
+    const url=absolutizeUrl(m[2],base);
+    if(url)links.push({url,text:m[1].trim()});
+  }
+  return links;
+}
+function uniqByUrl(items){
+  const seen=new Set();
+  return items.filter(i=>{const k=(i.url||i).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+}
+function urlHost(url){try{return new URL(url).hostname.replace(/^www\./,'');}catch(e){return'';}}
+function discoverRelevantLinks(results,domain){
+  const needles=/privacy|data-processing|dpa|subprocessor|security|trust|compliance|legal|terms|msa|sla|cookie|gdpr|ccpa|hipaa|soc|iso|certification|audit|vulnerability|status|support|api|changelog/i;
+  const baseHost=domain.replace(/^www\./,'');
+  const trustedEvidenceHosts=/safebase|vanta|trustcloud|drata|secureframe|hyperproof/i;
+  const all=results.flatMap(r=>(r.links||[]).map(l=>({...l,foundOn:r.url})));
+  return uniqByUrl(all)
+    .filter(l=>{
+      const host=urlHost(l.url);
+      const relatedHost=host===baseHost||host.endsWith('.'+baseHost)||trustedEvidenceHosts.test(host);
+      return relatedHost&&needles.test(`${l.url} ${l.text}`);
+    })
+    .slice(0,40);
+}
+
+// Simple text chunking for vector-like search
+function chunkText(text,maxLen=500){
+  const chunks=[];
+  const sentences=text.split(/[.!?]+/);
+  let cur='';
+  for(const s of sentences){
+    if((cur+s).length>maxLen&&cur.length>50){chunks.push(cur.trim());cur='';}
+    cur+=s+'.';
+  }
+  if(cur.trim().length>20)chunks.push(cur.trim());
+  return chunks;
+}
+
+// Build vector store from scraped content
+function buildVectorStore(results){
+  vectorStore=[];
+  for(const r of results){
+    const chunks=chunkText(r.txt);
+    chunks.forEach((c,i)=>{
+      vectorStore.push({
+        src:r.src,url:r.url,chunkId:i,text:c,
+        keywords:c.toLowerCase().match(/[a-z0-9-]+/g)||[]
+      });
+    });
+  }
+}
+
+// Search vector store for relevant content
+function vectorSearch(query,topK=5){
+  const qWords=query.toLowerCase().match(/[a-z0-9-]+/g)||[];
+  const scored=vectorStore.map(v=>{
+    const overlap=v.keywords.filter(k=>qWords.includes(k)).length;
+    return{...v,score:overlap};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+  return scored.slice(0,topK);
+}
+function vectorContext(queries,topK=4){
+  const seen=new Set(),out=[];
+  queries.forEach(q=>vectorSearch(q,topK).forEach(hit=>{
+    const k=hit.url+'#'+hit.chunkId;
+    if(seen.has(k))return;
+    seen.add(k);
+    out.push(`SOURCE: ${hit.src} (${hit.url})\n${hit.text.slice(0,650)}`);
+  }));
+  return out.join('\n\n---\n\n');
+}
+
+function flattenCrawl4AIResults(payload){
+  if(Array.isArray(payload))return payload;
+  if(Array.isArray(payload?.results))return payload.results;
+  if(Array.isArray(payload?.data))return payload.data;
+  if(Array.isArray(payload?.result))return payload.result;
+  if(payload?.result)return [payload.result];
+  return payload?[payload]:[];
+}
+function crawlResultText(item){
+  return item?.markdown?.raw_markdown||item?.markdown?.markdown||item?.markdown||item?.fit_markdown||item?.cleaned_html||item?.html||item?.content||item?.text||'';
+}
+function friendlyScraperError(e){
+  const msg=String(e?.message||e||'unknown error');
+  if(/Failed to fetch|NetworkError|Load failed/i.test(msg))return 'network/CORS failure';
+  if(/timeout|aborted/i.test(msg))return 'request timed out';
+  return msg;
+}
+async function scrapeWithLLMScraper(pages){
+  const endpoint=getScraperEndpoint();
+  if(!endpoint)return null;
+  const out=[];
+  const errors=[];
+  for(const page of pages){
+    try{
+      const rows=await scrapeWithLLMScraperBatch(endpoint,[page]);
+      out.push(...rows);
+    }catch(e){
+      errors.push(`${page.id}: ${friendlyScraperError(e)}`);
+    }
+  }
+  if(!out.length)throw new Error(`open_source_scraper_no_results (${errors.slice(0,4).join('; ')||'no response data'})`);
+  return out;
+}
+async function scrapeWithLLMScraperBatch(endpoint,pages){
+  const payload={
+    urls:pages.map(p=>p.url),
+    browser_config:{type:'BrowserConfig',params:{headless:true}},
+    crawler_config:{type:'CrawlerRunConfig',params:{stream:false,cache_mode:'bypass'}}
+  };
+  let r;
+  try{
+    r=await fetch(endpoint+'/crawl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(25000)});
+  }catch(e){throw new Error(friendlyScraperError(e));}
+  if(!r.ok)throw new Error('llm_scraper_http_'+r.status);
+  const data=await r.json();
+  const items=flattenCrawl4AIResults(data);
+  const rows=items.map((item,i)=>{
+    const page=pages[i]||pages.find(p=>p.url===(item.url||item.input_url))||{};
+    const url=item.url||item.input_url||page.url;
+    const raw=String(crawlResultText(item)||'');
+    const txt=cleanHtml(raw);
+    const html=String(item.html||item.cleaned_html||'');
+    return {src:page.id||item.status||'LLMScraper',url,txt,links:uniqByUrl([...extractLinks(html,url),...extractMarkdownLinks(raw,url)]),verified:true,scraper:'llm'};
+  }).filter(r=>r.url&&r.txt.length>150&&!looksLikeMissingPage(r.txt));
+  return rows;
+}
+
+// Fetch company logo
+async function fetchLogo(vendor,domain){
+  const logoQueries=[
+    `https://${domain}/logo.svg`,
+    `https://${domain}/logo.png`,
+    `https://${domain}/assets/logo.svg`,
+    `https://${domain}/assets/logo.png`,
+    `https://logo.clearbit.com/${domain}`,
+    `https://www.google.com/s2/favicons?domain=${domain}&sz=128`
+  ];
+  for(const url of logoQueries){
+    try{
+      const r=await fetch(url,{method:'HEAD',signal:AbortSignal.timeout(3000)});
+      if(r.ok&&r.status<400)return url;
+    }catch(e){}
+  }
+  // Fallback: try to extract logo from homepage
+  try{
+    const html=await fetchProxy(`https://${domain}`);
+    const logoMatch=html.match(/<link[^>]*rel=["']?(icon|apple-touch-icon|mask-icon)["']?[^>]*href=["']([^"']+)["']/i);
+    if(logoMatch){
+      const logoUrl=logoMatch[2].startsWith('http')?logoMatch[2]:`https://${domain}${logoMatch[2].startsWith('/')?logoMatch[2]:'/'+logoMatch[2]}`;
+      return logoUrl;
+    }
+  }catch(e){}
+  return null;
+}
+function inferDomain(v){
+  let s=v.trim().toLowerCase();
+  if(s.startsWith('http')){try{return new URL(s).hostname.replace('www.','');}catch(e){}}
+  s=s.replace(/\s+inc\.?$|\s+corp\.?$|\s+ltd\.?$|\s+llc\.?$/i,'').trim().replace(/\s+/g,'').replace(/[^a-z0-9.-]/g,'');
+  return s+'.com';
+}
+
+function logCrawl(url,status,chars,note=''){
+  crawlLog.push({ts:new Date().toISOString(),url,status,chars:chars||0,note});
+}
+
+async function headCheck(url){
+  for(const mkProxy of PROXIES){
+    try{
+      const r=await fetch(mkProxy(url),{signal:AbortSignal.timeout(7000)});
+      if(!r.ok)return{ok:false,status:r.status};
+      const body=await r.text();
+      let text=body;
+      try{const d=JSON.parse(body);text=d.contents||d.data||body;}catch(e){}
+      const clean=cleanHtml(text);
+      if(looksLikeMissingPage(clean)||clean.length<120)return{ok:false,status:404,note:'looks like 404 or empty'};
+      return{ok:true,status:200,chars:clean.length,html:text};
+    }catch(e){}
+  }
+  return{ok:false,status:0,note:'all proxies failed'};
+}
+
+async function scrape(vendor){
+  crawlLog=[];
+  const domain=inferDomain(vendor);
+  const priorityPages=[
+    {id:'Home',url:`https://${domain}`},
+    {id:'Security',url:`https://${domain}/security`},
+    {id:'Privacy',url:`https://${domain}/privacy`},
+    {id:'PrivacyPolicy',url:`https://${domain}/privacy-policy`},
+    {id:'Trust',url:`https://${domain}/trust`},
+    {id:'Compliance',url:`https://${domain}/compliance`},
+    {id:'Subprocessors',url:`https://${domain}/subprocessors`},
+    {id:'TrustCenter',url:`https://trust.${domain}`},
+    {id:'SecurityCenter',url:`https://security.${domain}`},
+    {id:'Legal',url:`https://${domain}/legal`},
+    {id:'Terms',url:`https://${domain}/terms`},
+    {id:'Certifications',url:`https://${domain}/certifications`},
+    {id:'SOC2',url:`https://${domain}/soc2`},
+    {id:'ISO27701',url:`https://${domain}/iso-27701`},
+    {id:'DPA',url:`https://${domain}/dpa`},
+    {id:'MSA',url:`https://${domain}/msa`},
+    {id:'HIPAA',url:`https://${domain}/hipaa`}
+  ];
+  const srcs=document.getElementById('ssrcs'); srcs.innerHTML='';
+  priorityPages.forEach(p=>{const c=document.createElement('span');c.className='ssrc';c.id='ss-'+p.id;c.textContent=p.id;srcs.appendChild(c);});
+  const results=[];
+  let usedLLMScraper=false;
+  const endpoint=getScraperEndpoint();
+
+  // Layer 1: URL pre-validation — HEAD check every candidate URL before committing to full scrape
+  logCrawl('(start)','init',0,`Pre-validating ${priorityPages.length} candidate URLs for ${domain}`);
+  const validPages=[];
+  for(const pg of priorityPages){
+    const chip=document.getElementById('ss-'+pg.id);
+    if(chip)chip.title='Checking…';
+    const check=await headCheck(pg.url);
+    if(check.ok){
+      validPages.push({...pg,_preHtml:check.html});
+      logCrawl(pg.url,'reachable',check.chars);
+    }else{
+      logCrawl(pg.url,'404/unavailable',0,check.note||`HTTP ${check.status}`);
+      if(chip)chip.classList.add('fail');
+      if(chip)chip.title=`HTTP ${check.status} — page not found`;
+    }
+  }
+  logCrawl('(validate)','done',0,`${validPages.length}/${priorityPages.length} URLs reachable`);
+
+  try{
+    const llmResults=endpoint?await scrapeWithLLMScraper(validPages):null;
+    if(llmResults?.length){
+      usedLLMScraper=true;
+      llmResults.forEach(r=>{
+        results.push(r);
+        logCrawl(r.url,'scraped-llm',r.txt.length);
+        const chip=document.getElementById('ss-'+r.src);
+        if(chip)chip.classList.add('done');
+      });
+      validPages.filter(p=>!llmResults.some(r=>r.url===p.url)).forEach(p=>{
+        logCrawl(p.url,'llm-skipped',0);
+        document.getElementById('ss-'+p.id)?.classList.add('fail');
+      });
+    }
+  }catch(e){
+    const c=document.createElement('span');c.className='ssrc fail';c.textContent='Open-source scraper failed';srcs.appendChild(c);
+    c.title=e.message||String(e);
+    logCrawl('(llm-scraper)','error',0,e.message||String(e));
+    if(endpoint)throw e;
+  }
+
+  if(!usedLLMScraper){
+    if(endpoint)throw new Error('Open-source scraper returned no usable pages. Check the endpoint test, proxy console, and Crawl4AI container logs.');
+    for(const pg of validPages){
+      const chip=document.getElementById('ss-'+pg.id);
+      try{
+        const html=pg._preHtml||await fetchProxy(pg.url);
+        const txt=cleanHtml(html);
+        if(txt.length>150&&!looksLikeMissingPage(txt)){
+          results.push({src:pg.id,url:pg.url,txt,links:extractLinks(html,pg.url),verified:true,scraper:'proxy'});
+          logCrawl(pg.url,'scraped-proxy',txt.length);
+          if(chip)chip.classList.add('done');
+        }else{
+          logCrawl(pg.url,'empty-content',txt.length,'content too short or looks like error page');
+          if(chip)chip.classList.add('fail');
+        }
+      }catch(e){
+        logCrawl(pg.url,'fetch-error',0,e.message||String(e));
+        if(chip)chip.classList.add('fail');
+      }
+    }
+  }
+
+  const discovered=discoverRelevantLinks(results,domain);
+  const discoveredItems=discovered.slice(0,15).map((l,i)=>({...l,chipId:'Link'+i}));
+  discoveredItems.forEach((l,i)=>{
+    const id='Link'+i;
+    const c=document.createElement('span');c.className='ssrc';c.id='ss-'+id;c.textContent=l.text||new URL(l.url).pathname.slice(1,18)||'Link';srcs.appendChild(c);
+  });
+  const discoveredToFetch=discoveredItems.filter(l=>!results.some(r=>r.url===l.url));
+
+  // Pre-validate discovered links too
+  const validDiscovered=[];
+  for(const l of discoveredToFetch){
+    const check=await headCheck(l.url);
+    if(check.ok){validDiscovered.push({...l,_preHtml:check.html});logCrawl(l.url,'discovered-reachable',check.chars);}
+    else{logCrawl(l.url,'discovered-404',0,check.note||`HTTP ${check.status}`);document.getElementById('ss-'+l.chipId)?.classList.add('fail');}
+  }
+
+  if(usedLLMScraper&&validDiscovered.length){
+    try{
+      const llmMore=await scrapeWithLLMScraper(validDiscovered.map(l=>({id:l.chipId,url:l.url})));
+      (llmMore||[]).forEach(r=>{
+        const original=validDiscovered.find(l=>l.url===r.url);
+        results.push({...r,src:original?.text||r.src||'Discovered',foundOn:original?.foundOn});
+        logCrawl(r.url,'scraped-llm-discovered',r.txt.length);
+        document.getElementById('ss-'+(original?.chipId||r.src))?.classList.add('done');
+      });
+    }catch(e){
+      validDiscovered.forEach(l=>{const chip=document.getElementById('ss-'+l.chipId);if(chip){chip.classList.add('fail');chip.title=e.message||String(e);}});
+      logCrawl('(llm-discovered)','error',0,e.message||String(e));
+    }
+  }
+  if(!endpoint){
+    for(const l of validDiscovered){
+      if(results.some(r=>r.url===l.url))continue;
+      const chip=document.getElementById('ss-'+l.chipId);
+      try{
+        const html=l._preHtml||await fetchProxy(l.url);
+        const txt=cleanHtml(html);
+        if(txt.length>150&&!looksLikeMissingPage(txt)){
+          results.push({src:l.text||'Discovered',url:l.url,txt,links:extractLinks(html,l.url),foundOn:l.foundOn,verified:true,scraper:'proxy'});
+          logCrawl(l.url,'scraped-proxy-discovered',txt.length);
+          if(chip)chip.classList.add('done');
+        }else{
+          logCrawl(l.url,'discovered-empty',txt.length);
+          if(chip)chip.classList.add('fail');
+        }
+      }catch(e){
+        logCrawl(l.url,'discovered-error',0,e.message||String(e));
+        if(chip)chip.classList.add('fail');
+      }
+    }
+  }
+  logCrawl('(complete)','done',results.reduce((s,r)=>s+r.txt.length,0),`${results.length} pages indexed, ${vectorStore.length} chunks`);
+  return{domain,results};
+}
+
+// ═══════════════════════════════
+// AI CALL
+// ═══════════════════════════════
+async function callAI(prompt,maxTok=7000){
+  const key=gKey(curProv); if(!key)throw new Error('No API key. Click "Configure AI Provider" in the topbar.');
+  const p=PROVS[curProv]; const model=curModel||p.def;
+  if(p.fmt==='openai'){const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],temperature:.1,max_tokens:maxTok})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error');}return(await r.json()).choices?.[0]?.message?.content||'';}
+  if(p.fmt==='gemini'){const url=p.ep.replace('{model}',model)+'?key='+key;const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.1,maxOutputTokens:maxTok}})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error');}return(await r.json()).candidates?.[0]?.content?.parts?.[0]?.text||'';}
+  if(p.fmt==='anthropic'){const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],max_tokens:maxTok})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error');}return(await r.json()).content?.[0]?.text||'';}
+}
+
+// ═══════════════════════════════
+// TABS / PIPS
+// ═══════════════════════════════
+function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));document.getElementById('tab-'+t).classList.add('on');document.getElementById('panel-'+t).classList.add('on');}
+function pip(i,s){const el=document.getElementById('p'+i);if(!el)return;el.classList.remove('done','live');if(s)el.classList.add(s);}
+
+// ═══════════════════════════════
+// MAIN RUN
+// ═══════════════════════════════
+const STEPS=['Pre-validating URLs (HEAD checks)…','Crawling reachable pages & building vector index…','Agent 1: Compliance & Certifications (ISO 27701, SOC2…)…','Agents 2–3: Security · Privacy · Legal · Operational…','Agent 4: Synthesis — scores, flags, verdict…','Finalising multi-agent procurement report…'];
+function makeTaskId(){return 'task-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,7);}
+function allAllowedUrls(results){
+  return uniqByUrl([
+    ...results.map(r=>({url:r.url})),
+    ...results.flatMap(r=>r.links||[])
+  ]).map(x=>x.url);
+}
+function normalizeUrlForCompare(url){
+  try{const u=new URL(url);u.hash='';return u.href.replace(/\/$/,'').toLowerCase();}catch(e){return String(url||'').replace(/\/$/,'').toLowerCase();}
+}
+function isAllowedDocumentUrl(url,allowed){
+  if(!url)return true;
+  const n=normalizeUrlForCompare(url);
+  return allowed.some(a=>normalizeUrlForCompare(a)===n);
+}
+function getFreshSourceText(freshData,url){
+  const n=normalizeUrlForCompare(url);
+  const hit=Object.keys(freshData).find(k=>normalizeUrlForCompare(k)===n);
+  return hit?freshData[hit]:'';
+}
+function scrubUnprovenDocUrls(d,allowed){
+  const removed=[];
+  [['docs','dpa_url'],['docs','privacy_policy_url'],['docs','terms_of_service_url'],['docs','msa_url'],['docs','sla_url'],['docs','security_policy_url'],['docs','trust_page_url'],['docs','compliance_page_url'],['docs','audit_reports_url'],['docs','subprocessors_url'],['docs','cookie_policy_url'],['docs','acceptable_use_url'],['docs','support_url'],['docs','api_docs_url'],['docs','status_page_url'],['docs','gdpr_page_url'],['docs','ccpa_page_url'],['docs','hipaa_page_url'],['docs','vulnerability_disclosure_url'],['docs','changelog_url'],['privacy_data','dpa_url'],['privacy_data','privacy_policy_url'],['privacy_data','cookie_policy_url'],['access_risk','subprocessors_list_url'],['compliance','trust_page_url'],['security','vuln_disclosure_policy_url'],['operational','status_page_url']].forEach(([obj,key])=>{
+    if(d[obj]?.[key]&&!isAllowedDocumentUrl(d[obj][key],allowed)){
+      removed.push({field:`${obj}.${key}`,url:d[obj][key]});
+      d[obj][key]=null;
+    }
+  });
+  return removed;
+}
+function findSource(results,pattern){
+  return results.find(r=>pattern.test(`${r.url}\n${r.txt}`));
+}
+function certValue(results,pattern){
+  const hit=findSource(results,pattern);
+  return hit?true:null;
+}
+function firstUrl(allowed,pattern){
+  return allowed.find(u=>pattern.test(u))||null;
+}
+function evidenceSnippet(text,pattern){
+  const idx=text.search(pattern);
+  if(idx<0)return null;
+  return text.slice(Math.max(0,idx-90),idx+220).replace(/\s+/g,' ').trim();
+}
+function buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId){
+  const security=findSource(results,/security|trust|compliance|soc|iso|pci|gdpr/i);
+  const privacy=findSource(results,/privacy|gdpr|ccpa|data subject|personal data/i);
+  const dpa=findSource(results,/data processing agreement|dpa\b/i);
+  const subp=findSource(results,/subprocessor/i);
+  const certSrc=security||findSource(results,/soc|iso|pci/i);
+  const flags=[];
+  if(!certSrc)flags.push({severity:'amber',title:'Limited public compliance evidence',detail:'The scraper did not find a public security, trust, or compliance page with certification evidence.',source_url:null,confidence_score:.9});
+  if(!dpa)flags.push({severity:'amber',title:'DPA not found in public crawl',detail:'No public Data Processing Agreement evidence was found. Request this directly from the vendor if needed.',source_url:null,confidence_score:.85});
+  return {
+    scores:{overall:certSrc?62:45,legal_financial:'NA',compliance:certSrc?'B':'NA',security:security?'B':'NA',privacy_data:privacy?'C':'NA',access_risk:'NA',operational:'NA',score_rationale:'Evidence-only score generated from fetched public sources. AI enrichment was not used.'},
+    flags,
+    verdict:{recommendation:'Escalate for review',risk_tier:'Medium',summary:'Evidence-only assessment generated from open-source scraper output. Review source citations and request missing private documents from the vendor.'},
+    vendor_log:[],
+    docs:{
+      privacy_policy_url:firstUrl(allowedUrls,/privacy/i),
+      terms_of_service_url:firstUrl(allowedUrls,/terms/i),
+      dpa_url:firstUrl(allowedUrls,/data-processing|dpa/i),
+      msa_url:firstUrl(allowedUrls,/msa|master-service/i),
+      sla_url:firstUrl(allowedUrls,/sla|service-level/i),
+      security_policy_url:firstUrl(allowedUrls,/security/i),
+      trust_page_url:firstUrl(allowedUrls,/trust|security|compliance/i),
+      compliance_page_url:firstUrl(allowedUrls,/compliance|certification|security/i),
+      audit_reports_url:firstUrl(allowedUrls,/audit|soc|iso|report/i),
+      subprocessors_url:firstUrl(allowedUrls,/subprocessor/i),
+      cookie_policy_url:firstUrl(allowedUrls,/cookie/i),
+      acceptable_use_url:firstUrl(allowedUrls,/acceptable-use|aup/i),
+      support_url:firstUrl(allowedUrls,/support|help/i),
+      api_docs_url:firstUrl(allowedUrls,/api|developer/i),
+      status_page_url:firstUrl(allowedUrls,/status/i),
+      gdpr_page_url:firstUrl(allowedUrls,/gdpr/i),
+      ccpa_page_url:firstUrl(allowedUrls,/ccpa/i),
+      hipaa_page_url:firstUrl(allowedUrls,/hipaa/i),
+      vulnerability_disclosure_url:firstUrl(allowedUrls,/vulnerability|bug-bounty|responsible-disclosure/i),
+      changelog_url:firstUrl(allowedUrls,/changelog|release/i)
+    },
+    access_risk:{system_access_required:'Unknown',system_access_detail:null,data_pii_access:privacy?'Yes':'Unknown',pii_categories:[],sensitive_data_types:[],typical_criticality:'Medium',criticality_rationale:'Not enough public evidence for a precise criticality rating.',network_connectivity_required:'Unknown',privileged_access_required:'Unknown',admin_access_required:'Unknown',data_storage_countries:[],cloud_providers_used:/\bAWS\b/i.test(results.map(r=>r.txt).join('\n'))?['AWS']:[],data_residency_options:[],data_retention_policy:null,data_portability:null,data_deletion_on_offboarding:null,subprocessors_with_data_access:subp?'Yes':'Unknown',subprocessors_list_url:subp?.url||null,fourth_party_risk_disclosure:null,gdpr_role:null},
+    legal_financial:{legal_name:null,trade_name:vendor,parent_company:null,ultimate_beneficial_owner:null,company_type:null,stock_ticker:null,year_founded:null,employee_count_approx:null,hq_address:{street:null,city:null,state:null,country:null,postal_code:null},other_offices:[],website:`https://${domain}`,revenue_approx:null,funding_stage:null,last_funding_amount:null,last_funding_date:null,market_cap:null,notable_investors:[],financial_stability_signals:null,public_since:null,recent_ma_activity:null,contract_min_term:null,contract_auto_renewal:null,contract_renewal_notice:null,exit_clause_notes:null,termination_for_cause:null,indemnification_notes:null,liability_cap_notes:null,ip_ownership_notes:null,governing_law:null,dispute_resolution:null,force_majeure_clause:null,audit_rights:null,known_litigation:null,regulatory_fines_history:null,bbb_rating:null,duns_number:null},
+    compliance:{soc2_type1:certValue(results,/SOC\s*2|SOC 2/i),soc2_type2:certValue(results,/SOC\s*2\s*TYPE\s*2|SOC 2 Type II|SOC 2/i),soc2_scope:null,iso_27001:certValue(results,/ISO[\/\s-]*27001/i),iso_27017:certValue(results,/ISO[\/\s-]*27017/i),iso_27018:certValue(results,/ISO[\/\s-]*27018/i),iso_27701:certValue(results,/ISO[\/\s-]*27701/i),iso_9001:certValue(results,/ISO[\/\s-]*9001/i),iso_22301:certValue(results,/ISO[\/\s-]*22301/i),hipaa_baa_available:certValue(results,/HIPAA/i),hipaa_hitech:null,pci_dss:certValue(results,/PCI\s*DSS|PCI/i),pci_dss_level:null,fedramp:certValue(results,/FedRAMP/i),fedramp_level:null,gdpr_compliant:certValue(results,/GDPR/i),ccpa_compliant:certValue(results,/CCPA/i),csa_star:certValue(results,/CSA\s*STAR|Cloud Security Alliance/i),csa_star_level:null,nist_csf:certValue(results,/NIST/i),nist_800_53:null,cmmc:null,tx_ramp:null,stateramp:null,soc1:certValue(results,/SOC\s*1/i),isae_3402:null,c5:null,irap:null,other_certifications:[],trust_page_url:security?.url||null,last_audit_date:null,audit_frequency:null,audit_firm:null,shared_audit_reports:null,regulatory_body_oversight:null,regulatory_notes:null,known_violations:null,data_residency_certifications:[],healthcare_specific:null,financial_services_specific:null,government_specific:null,education_specific:null},
+    security:{encryption_in_transit:/TLS|in transit/i.test(security?.txt||'')?'Yes':null,encryption_at_rest:/AES|at rest/i.test(security?.txt||'')?'Yes':null,key_management:null,fips_140_2:null,mfa_enforced:/MFA|multi-factor/i.test(security?.txt||'')?'Yes':null,mfa_types:[],sso_supported:/SSO|SAML|OIDC/i.test(security?.txt||'')?'Yes':null,sso_protocols:[],saml_supported:/SAML/i.test(security?.txt||'')?'Yes':null,oidc_supported:/OIDC/i.test(security?.txt||'')?'Yes':null,role_based_access:null,attribute_based_access:null,privileged_access_management:null,zero_trust_architecture:null,pen_testing_frequency:/penetration testing|pen test/i.test(security?.txt||'')?'Public page mentions penetration testing':null,last_pen_test_date:null,pen_test_firm:null,bug_bounty_program:/bug bounty/i.test(security?.txt||'')?'Yes':null,vuln_disclosure_policy_url:firstUrl(allowedUrls,/vulnerability|bug-bounty|responsible-disclosure/i),vulnerability_sla:null,siem_monitoring:null,edr_deployed:null,dlp_implemented:null,ddos_protection:null,waf_deployed:null,network_segmentation:null,secure_sdlc:/SDLC|secure development/i.test(security?.txt||'')?'Yes':null,code_scanning:null,dependency_scanning:null,secrets_management:null,incident_response_plan:/incident response/i.test(security?.txt||'')?'Yes':null,incident_notification_sla:null,tabletop_exercises:null,security_contact_email:(security?.txt.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]||null,known_breaches:null,breach_disclosure_history:null,cvss_patch_sla:null},
+    privacy_data:{privacy_policy_url:privacy?.url||firstUrl(allowedUrls,/privacy/i),last_privacy_policy_update:null,dpa_available:dpa?'Yes':null,dpa_url:firstUrl(allowedUrls,/data-processing|dpa/i),dpa_standard_terms:null,standard_contractual_clauses:null,binding_corporate_rules:null,gdpr_lawful_basis:null,data_minimization_policy:null,purpose_limitation:null,consent_management:null,consent_withdrawal_process:null,right_to_access:null,right_to_deletion:null,right_to_portability:null,right_to_rectification:null,right_to_object:null,data_subject_request_sla:null,data_subject_request_process:null,breach_notification_to_customers_hours:null,breach_notification_to_regulators_hours:null,cross_border_transfer_mechanism:null,privacy_shield_successor:null,uses_data_for_ai_training:null,opt_out_of_ai_training:null,anonymization_approach:null,pseudonymization_used:null,children_data_policy:null,cookie_policy_url:firstUrl(allowedUrls,/cookie/i),dpo_appointed:null,dpo_contact:null,privacy_by_design:null,records_of_processing:null},
+    operational:{uptime_sla:null,historical_uptime:null,status_page_url:firstUrl(allowedUrls,/status/i),last_major_outage:null,rto:null,rpo:null,dr_plan_tested:null,dr_test_frequency:null,backup_frequency:null,backup_encryption:null,multi_region_redundancy:/multi-region|availability zones/i.test(security?.txt||'')?'Yes':null,cdn_used:null,support_tiers:[],support_channels:[],support_hours:null,p1_response_sla:null,dedicated_account_manager:null,customer_success_manager:null,implementation_support:null,training_provided:null,documentation_quality:null,employee_background_checks:null,security_training_frequency:/security training/i.test(security?.txt||'')?'Public page mentions security training':null,nda_for_employees:null,insider_threat_program:null,offboarding_process:null,customer_references_available:null,g2_rating:null,g2_review_count:null,gartner_recognition:null,forrester_recognition:null,esg_policy:null,diversity_policy:null,carbon_neutral:null,supply_chain_risk_program:null},
+    product:{description:null,value_proposition:null,deployment_model:null,hosting_model:null,target_market:null,primary_use_cases:[],key_features:[],key_integrations:[],api_available:null,api_authentication:null,webhook_support:null,mobile_app:null,pricing_model:null,pricing_indicative:null,free_trial_available:null,implementation_timeline:null,onboarding_complexity:null,customization_options:null,vendor_lock_in_risk:null,data_export_formats:[],alternative_vendors:[],product_roadmap_public:null},
+    onetrust_procurement_notes:'Evidence-only mode: generated from public pages fetched by the open-source scraper. Use AI enrichment or vendor-provided documents for deeper legal/commercial conclusions.',
+    _field_sources:{
+      compliance_evidence:{source_url:certSrc?.url||null,confidence_score:certSrc?.url?.length?0.9:0,evidence_snippet:certSrc?evidenceSnippet(certSrc.txt,/SOC|ISO|PCI|GDPR|certification|audit/i):null},
+      security_evidence:{source_url:security?.url||null,confidence_score:security?.url?.length?0.85:0,evidence_snippet:security?evidenceSnippet(security.txt,/security|encryption|incident|penetration|SOC|ISO/i):null},
+      privacy_evidence:{source_url:privacy?.url||null,confidence_score:privacy?.url?.length?0.85:0,evidence_snippet:privacy?evidenceSnippet(privacy.txt,/privacy|personal data|GDPR|CCPA|data subject/i):null}
+    }
+  };
+}
+// ═══════════════════════════════
+// MULTI-AGENT AI ANALYSIS
+// ═══════════════════════════════
+function ctxFor(queries,k=6){return vectorContext(queries,k);}
+
+function domainPrompt(agentName,vendor,product,domain,ctx,allowedUrls){
+  const urlList=allowedUrls.map(u=>'- '+u).join('\n')||'(none confirmed reachable)';
+  const base=`VENDOR: "${vendor}" (domain: ${domain})\nPRODUCT: "${product}"\n\nCONFIRMED REACHABLE URLs ONLY (do NOT invent any URL not on this list):\n${urlList}\n\nWEB-SCRAPED CONTENT:\n${ctx||'(no content scraped)'}\n\nRULES: Only use URLs from the list above. If a URL is not on the list, set that field to null. Return ONLY valid JSON in \`\`\`json...\`\`\`.`;
+  if(agentName==='compliance') return base+`\n\nTASK: Compliance & Certifications analysis. Check EVERY certification carefully. For ISO 27701 (privacy information management system), search all content for "ISO 27701", "ISO/IEC 27701", "27701" and set iso_27701 truthfully. Include source URL and evidence snippet for every cert found or not found.\n\nReturn:\n\`\`\`json\n{"compliance":{"soc2_type1":null,"soc2_type2":null,"soc2_scope":null,"iso_27001":null,"iso_27017":null,"iso_27018":null,"iso_27701":null,"iso_9001":null,"iso_22301":null,"hipaa_baa_available":null,"hipaa_hitech":null,"pci_dss":null,"pci_dss_level":null,"fedramp":null,"fedramp_level":null,"gdpr_compliant":null,"ccpa_compliant":null,"csa_star":null,"csa_star_level":null,"nist_csf":null,"nist_800_53":null,"cmmc":null,"tx_ramp":null,"stateramp":null,"soc1":null,"isae_3402":null,"c5":null,"irap":null,"other_certifications":[],"trust_page_url":null,"last_audit_date":null,"audit_frequency":null,"audit_firm":null,"shared_audit_reports":null,"regulatory_body_oversight":null,"regulatory_notes":null,"known_violations":null,"data_residency_certifications":[],"healthcare_specific":null,"financial_services_specific":null,"government_specific":null,"education_specific":null},"docs":{"trust_page_url":null,"compliance_page_url":null,"audit_reports_url":null,"subprocessors_url":null,"gdpr_page_url":null,"ccpa_page_url":null,"hipaa_page_url":null},"_field_sources":{}}\n\`\`\``;
+  if(agentName==='security') return base+`\n\nTASK: Security posture analysis. Include confidence score and source URL for every finding.\n\nReturn:\n\`\`\`json\n{"security":{"encryption_in_transit":null,"encryption_at_rest":null,"key_management":null,"fips_140_2":null,"mfa_enforced":null,"mfa_types":[],"sso_supported":null,"sso_protocols":[],"saml_supported":null,"oidc_supported":null,"role_based_access":null,"attribute_based_access":null,"privileged_access_management":null,"zero_trust_architecture":null,"pen_testing_frequency":null,"last_pen_test_date":null,"pen_test_firm":null,"bug_bounty_program":null,"vuln_disclosure_policy_url":null,"vulnerability_sla":null,"siem_monitoring":null,"edr_deployed":null,"dlp_implemented":null,"ddos_protection":null,"waf_deployed":null,"network_segmentation":null,"secure_sdlc":null,"code_scanning":null,"dependency_scanning":null,"secrets_management":null,"incident_response_plan":null,"incident_notification_sla":null,"tabletop_exercises":null,"security_contact_email":null,"known_breaches":null,"breach_disclosure_history":null,"cvss_patch_sla":null},"docs":{"security_policy_url":null,"vulnerability_disclosure_url":null},"_field_sources":{}}\n\`\`\``;
+  if(agentName==='privacy') return base+`\n\nTASK: Privacy & Data analysis. Check for DPA availability — only set dpa_url if the URL is on the confirmed reachable list. Never invent a DPA URL.\n\nReturn:\n\`\`\`json\n{"privacy_data":{"privacy_policy_url":null,"last_privacy_policy_update":null,"dpa_available":null,"dpa_url":null,"dpa_standard_terms":null,"standard_contractual_clauses":null,"binding_corporate_rules":null,"gdpr_lawful_basis":null,"data_minimization_policy":null,"purpose_limitation":null,"consent_management":null,"consent_withdrawal_process":null,"right_to_access":null,"right_to_deletion":null,"right_to_portability":null,"right_to_rectification":null,"right_to_object":null,"data_subject_request_sla":null,"data_subject_request_process":null,"breach_notification_to_customers_hours":null,"breach_notification_to_regulators_hours":null,"cross_border_transfer_mechanism":null,"privacy_shield_successor":null,"uses_data_for_ai_training":null,"opt_out_of_ai_training":null,"anonymization_approach":null,"pseudonymization_used":null,"children_data_policy":null,"cookie_policy_url":null,"dpo_appointed":null,"dpo_contact":null,"privacy_by_design":null,"records_of_processing":null},"access_risk":{"system_access_required":"Unknown","system_access_detail":null,"data_pii_access":"Unknown","pii_categories":[],"sensitive_data_types":[],"typical_criticality":"Medium","criticality_rationale":null,"network_connectivity_required":"Unknown","privileged_access_required":"Unknown","admin_access_required":"Unknown","data_storage_countries":[],"cloud_providers_used":[],"data_residency_options":[],"data_retention_policy":null,"data_portability":null,"data_deletion_on_offboarding":null,"subprocessors_with_data_access":"Unknown","subprocessors_list_url":null,"fourth_party_risk_disclosure":null,"gdpr_role":null},"docs":{"privacy_policy_url":null,"dpa_url":null,"cookie_policy_url":null,"subprocessors_url":null},"_field_sources":{}}\n\`\`\``;
+  if(agentName==='legal') return base+`\n\nTASK: Legal, Financial & Operational analysis.\n\nReturn:\n\`\`\`json\n{"legal_financial":{"legal_name":null,"trade_name":null,"parent_company":null,"ultimate_beneficial_owner":null,"company_type":null,"stock_ticker":null,"year_founded":null,"employee_count_approx":null,"hq_address":{"street":null,"city":null,"state":null,"country":null,"postal_code":null},"other_offices":[],"website":null,"revenue_approx":null,"funding_stage":null,"last_funding_amount":null,"last_funding_date":null,"market_cap":null,"notable_investors":[],"financial_stability_signals":null,"public_since":null,"recent_ma_activity":null,"contract_min_term":null,"contract_auto_renewal":null,"contract_renewal_notice":null,"exit_clause_notes":null,"termination_for_cause":null,"indemnification_notes":null,"liability_cap_notes":null,"ip_ownership_notes":null,"governing_law":null,"dispute_resolution":null,"force_majeure_clause":null,"audit_rights":null,"known_litigation":null,"regulatory_fines_history":null,"bbb_rating":null,"duns_number":null},"operational":{"uptime_sla":null,"historical_uptime":null,"status_page_url":null,"last_major_outage":null,"rto":null,"rpo":null,"dr_plan_tested":null,"dr_test_frequency":null,"backup_frequency":null,"backup_encryption":null,"multi_region_redundancy":null,"cdn_used":null,"support_tiers":[],"support_channels":[],"support_hours":null,"p1_response_sla":null,"dedicated_account_manager":null,"customer_success_manager":null,"implementation_support":null,"training_provided":null,"documentation_quality":null,"employee_background_checks":null,"security_training_frequency":null,"nda_for_employees":null,"insider_threat_program":null,"offboarding_process":null,"customer_references_available":null,"g2_rating":null,"g2_review_count":null,"gartner_recognition":null,"forrester_recognition":null,"esg_policy":null,"diversity_policy":null,"carbon_neutral":null,"supply_chain_risk_program":null},"docs":{"terms_of_service_url":null,"msa_url":null,"sla_url":null,"acceptable_use_url":null,"support_url":null,"api_docs_url":null,"status_page_url":null,"changelog_url":null},"_field_sources":{}}\n\`\`\``;
+  // synthesis
+  return base+`\n\nTASK: Synthesis — scores, flags, verdict, vendor log, and product description. Base scores on the totality of scraped evidence.\n\nSCORING: Grade each domain A/B/C/D/F/NA. Give overall_score 0-100. Weight: Security=25%, Access Risk=25%, Compliance=20%, Privacy=15%, Legal/Financial=10%, Operational=5%. Be honest about gaps — if evidence is missing, score lower.\n\nVENDOR LOG: 5-10 significant events with dates (breaches, regulatory actions, product launches, acquisitions, leadership changes, funding, outages). Include source_url only if on the confirmed list.\n\nFLAGS: Flag missing certifications (including ISO 27701 if not found), hallucinated URLs that were blocked, 404s, data gaps. Include source_url for each flag where applicable.\n\nReturn:\n\`\`\`json\n{"scores":{"overall":0,"legal_financial":"NA","compliance":"NA","security":"NA","privacy_data":"NA","access_risk":"NA","operational":"NA","score_rationale":null},"flags":[{"severity":"red|amber|green","title":null,"detail":null,"source_url":null,"confidence_score":0.0}],"verdict":{"recommendation":"Approve|Approve with conditions|Escalate for review|Reject","risk_tier":"Low|Medium|High|Critical","summary":null},"vendor_log":[{"date":null,"category":"breach|regulatory|product|acquisition|financial|leadership|outage|partnership","headline":null,"detail":null,"source_url":null,"confidence_score":0.0}],"product":{"description":null,"value_proposition":null,"deployment_model":null,"hosting_model":null,"target_market":null,"primary_use_cases":[],"key_features":[],"key_integrations":[],"api_available":null,"api_authentication":null,"webhook_support":null,"mobile_app":null,"pricing_model":null,"pricing_indicative":null,"free_trial_available":null,"implementation_timeline":null,"onboarding_complexity":null,"customization_options":null,"vendor_lock_in_risk":null,"data_export_formats":[],"alternative_vendors":[],"product_roadmap_public":null},"docs":{"privacy_policy_url":null,"terms_of_service_url":null,"dpa_url":null,"msa_url":null,"sla_url":null,"security_policy_url":null,"trust_page_url":null,"compliance_page_url":null,"audit_reports_url":null,"subprocessors_url":null,"cookie_policy_url":null,"acceptable_use_url":null,"support_url":null,"api_docs_url":null,"status_page_url":null,"gdpr_page_url":null,"ccpa_page_url":null,"hipaa_page_url":null,"vulnerability_disclosure_url":null,"changelog_url":null},"onetrust_procurement_notes":null,"_field_sources":{}}\n\`\`\``;
+}
+
+async function callDomainAgent(agentName,vendor,product,domain,ctx,allowedUrls,maxTok=3000){
+  const prompt=domainPrompt(agentName,vendor,product,domain,ctx,allowedUrls);
+  const raw=await callAI(prompt,maxTok);
+  const fence=raw.match(/```json\s*([\s\S]*?)```/);const bare=raw.match(/(\{[\s\S]*\})/s);
+  return JSON.parse(fence?fence[1]:bare?bare[1]:'{}');
+}
+
+async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,fallbackCtx){
+  document.getElementById('smsgbar').textContent='Agent 1/5: Fetching compliance & certifications…';
+  const compCtx=ctxFor(['SOC 2 SOC2 certification audit','ISO 27001 ISO 27017 ISO 27018 ISO 27701 ISO/IEC 27701 privacy information management','PCI DSS FedRAMP HIPAA CSA STAR NIST CMMC GDPR CCPA compliance framework trust'],7)||fallbackCtx.slice(0,3000);
+
+  document.getElementById('smsgbar').textContent='Running 4 parallel analysis agents…';
+  const [complianceR,securityR,privacyR,legalR,synthR]=await Promise.allSettled([
+    callDomainAgent('compliance',vendor,product,domain,compCtx,allowedUrls,2800),
+    callDomainAgent('security',vendor,product,domain,ctxFor(['encryption TLS MFA SSO SAML penetration testing vulnerability incident response zero trust','bug bounty SIEM WAF DDoS secure SDLC key management FIPS'],6)||fallbackCtx.slice(0,3000),allowedUrls,2800),
+    callDomainAgent('privacy',vendor,product,domain,ctxFor(['privacy policy GDPR CCPA data subject DPA subprocessors data processing agreement','data retention AI training opt out consent DPO anonymization pseudonymization'],6)||fallbackCtx.slice(0,3000),allowedUrls,2800),
+    callDomainAgent('legal',vendor,product,domain,ctxFor(['company legal name headquarters founded employees funding investors revenue','contract SLA MSA auto renewal termination indemnification governing law uptime support'],6)||fallbackCtx.slice(0,3000),allowedUrls,2800),
+    callDomainAgent('synthesis',vendor,product,domain,fallbackCtx.slice(0,4000),allowedUrls,3500)
+  ]);
+  document.getElementById('smsgbar').textContent='Merging agent results…';
+  const get=r=>r.status==='fulfilled'&&r.value?r.value:{};
+  const c=get(complianceR),s=get(securityR),p=get(privacyR),l=get(legalR),syn=get(synthR);
+  const mergeDocs=(...objs)=>{const out={};objs.forEach(o=>{if(o?.docs)Object.entries(o.docs).forEach(([k,v])=>{if(v&&!out[k])out[k]=v;});});return out;};
+  return{
+    scores:syn.scores||{overall:0,legal_financial:'NA',compliance:'NA',security:'NA',privacy_data:'NA',access_risk:'NA',operational:'NA',score_rationale:'Multi-agent analysis'},
+    flags:syn.flags||[],
+    verdict:syn.verdict||{recommendation:'Escalate for review',risk_tier:'Medium',summary:'Multi-agent analysis complete.'},
+    vendor_log:syn.vendor_log||[],
+    docs:mergeDocs(syn,c,s,p,l),
+    legal_financial:l.legal_financial||{},
+    compliance:c.compliance||{},
+    security:s.security||{},
+    privacy_data:p.privacy_data||{},
+    access_risk:p.access_risk||{},
+    operational:l.operational||{},
+    product:syn.product||{},
+    onetrust_procurement_notes:syn.onetrust_procurement_notes||null,
+    _field_sources:{...(c._field_sources||{}),...(s._field_sources||{}),...(p._field_sources||{}),...(l._field_sources||{}),...(syn._field_sources||{})}
+  };
+}
+
+async function run(){
+  const vendor=document.getElementById('vInput').value.trim();
+  const product=document.getElementById('pInput').value.trim();
+  if(!vendor){document.getElementById('vInput').focus();return;}
+  if(!product){document.getElementById('pInput').focus();return;}
+  if(!gKey(curProv)&&!getScraperEndpoint()){openModal('ai');return;}
+  busy(true); pip(0,'live');
+  document.getElementById('smsgbar').textContent=STEPS[0];
+  document.getElementById('sbn').classList.add('on');
+  document.getElementById('smsg2').textContent='Fetching pages for '+vendor+'…';
+  const taskId=makeTaskId();
+  let ctx='',srcs=[],allowedUrls=[];
+  let ticker=null;
+  try{
+    const {domain,results}=await scrape(vendor);
+    if(!results.length)throw new Error('No public pages could be fetched. Check the vendor domain or try again; the CORS proxy may be temporarily unavailable.');
+    srcs=results.map(r=>r.src+': '+r.url);
+    buildVectorStore(results);
+    allowedUrls=allAllowedUrls(results);
+    const reviewQueries=[
+      'company legal name headquarters funding public company employees',
+      'product travel expense platform API integrations pricing support',
+      'SOC 2 SOC 1 ISO 27001 ISO 27701 PCI certification audit report trust compliance',
+      'security encryption MFA SSO SAML penetration testing vulnerability disclosure incident response',
+      'privacy policy GDPR CCPA data subject rights DPA subprocessors data processing agreement',
+      'data retention data residency cloud provider AWS subprocessors artificial intelligence training',
+      'status uptime SLA support terms acceptable use cookie policy',
+      'breach incident outage acquisition funding leadership regulatory fine'
+    ];
+    const focusedCtx=vectorContext(reviewQueries,5);
+    ctx=focusedCtx||results.slice(0,8).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,2500)}`).join('\n\n---\n\n');
+    // Fetch logo best-effort; never block the assessment on branding assets.
+    gLogoUrl=await Promise.race([fetchLogo(vendor,domain),new Promise(resolve=>setTimeout(()=>resolve(null),3500))]);
+    document.getElementById('sbn').classList.remove('on');
+    pip(0,'done');pip(1,'done');pip(2,'live');
+    document.getElementById('smsgbar').textContent=STEPS[2];
+    let step=2; ticker=setInterval(()=>{pip(step,'done');step=Math.min(step+1,5);pip(step,'live');document.getElementById('smsgbar').textContent=STEPS[step];},7000);
+    let parsed,aiFallbackNote=null;
+    if(gKey(curProv)){
+      try{
+        parsed=await runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,ctx);
+      }catch(e){
+        aiFallbackNote='AI enrichment failed, rendered evidence-only report: '+(e.message||String(e));
+        parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);
+      }
+    }else{
+      aiFallbackNote='No AI key configured, rendered evidence-only report from open-source scraper output.';
+      parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);
+    }
+    clearInterval(ticker); for(let i=0;i<=5;i++)pip(i,'done');
+    const removedUrls=scrubUnprovenDocUrls(parsed,allowedUrls);
+    parsed._meta={
+      assessment_task_id:taskId,vendor_queried:vendor,product_service:product,domain,
+      ai_provider:curProv,ai_model:curModel,
+      scraper_endpoint:getScraperEndpoint()||'browser-proxy-fallback',
+      scraper_engine:results.some(r=>r.scraper==='llm')?'open-source-llm-scraper':'browser-proxy',
+      sources_scraped:srcs,
+      source_urls_allowed:allowedUrls,
+      vector_chunks:vectorStore.length,
+      crawl_log:crawlLog,
+      generated_at:new Date().toISOString(),
+      freshness_checked_at:null,
+      logo_url:gLogoUrl,
+      verification_log:[
+        {ts:new Date().toISOString(),field:'assessment_task',oldVal:'',newVal:`Started isolated review task ${taskId}`,sourceUrl:'',confidence:1,note:`Fetched ${results.length} pages, indexed ${vectorStore.length} chunks, discovered ${allowedUrls.length} URLs.`,changeType:'system'},
+        ...(aiFallbackNote?[{ts:new Date().toISOString(),field:'analysis_mode',oldVal:'AI enrichment',newVal:'Evidence-only',sourceUrl:'',confidence:1,note:aiFallbackNote,changeType:'system'}]:[]),
+        ...removedUrls.map(r=>({ts:new Date().toISOString(),field:r.field,oldVal:r.url,newVal:'',sourceUrl:r.url,confidence:1,note:'Removed because the URL was not discovered in fetched page content.',changeType:'rejected'}))
+      ]
+    };
+    gData=parsed; await render(parsed);
+    document.getElementById('res').classList.add('on');
+    document.getElementById('emptyState').style.display='none';
+    computeFreshness(parsed);
+  }catch(err){
+    if(ticker)clearInterval(ticker);
+    document.getElementById('sbn').classList.remove('on');
+    document.getElementById('smsgbar').textContent='⚠ '+err.message;
+    setTimeout(()=>busy(false,true),4000); return;
+  }
+  busy(false);
+}
+function busy(on,keepBar=false){
+  document.getElementById('runBtn').disabled=on;
+  document.getElementById('btnLbl').textContent=on?'Assessing vendor…':'Run Full Vendor Assessment';
+  document.getElementById('sbar').classList.toggle('on',on);
+  if(!on&&!keepBar){document.getElementById('sbar').classList.remove('on');document.getElementById('emptyState').style.display='none';}
+}
+
+// ═══════════════════════════════
+// FRESHNESS CHECK
+// ═══════════════════════════════
+function computeFreshness(d){
+  // Determine age from scraped content dates and known audit dates
+  const auditDate = d.compliance?.last_audit_date;
+  const policyDate = d.privacy_data?.last_privacy_policy_update;
+  const generatedAt = d._meta?.generated_at;
+  const now = new Date();
+  const genDate = generatedAt ? new Date(generatedAt) : now;
+  const ageHours = Math.floor((now - genDate) / 3600000);
+  const ageBadge = document.getElementById('freshBadge');
+  const ageLabel = document.getElementById('freshLabel');
+  if(ageHours < 1){ ageBadge.className='freshness-badge fresh'; ageLabel.textContent='Just fetched'; }
+  else if(ageHours < 24){ ageBadge.className='freshness-badge fresh'; ageLabel.textContent=`Fetched ${ageHours}h ago`; }
+  else if(ageHours < 168){ ageBadge.className='freshness-badge stale'; ageLabel.textContent=`${Math.floor(ageHours/24)}d old — verify`; }
+  else { ageBadge.className='freshness-badge very-stale'; ageLabel.textContent='Data may be outdated'; }
+  // Build freshness grid
+  const fpGrid=document.getElementById('fpGrid');
+  fpGrid.innerHTML='';
+  const checks=[
+    {label:'Privacy Policy',    date:policyDate,         key:'privacy_policy'},
+    {label:'Last Security Audit',date:auditDate,         key:'last_audit'},
+    {label:'Trust Page',        url:d.compliance?.trust_page_url, key:'trust_page'},
+    {label:'Certifications',    date:d.compliance?.last_audit_date, key:'certs'},
+    {label:'DPA / MSA',         url:d.docs?.dpa_url||d.privacy_data?.dpa_url, key:'dpa'},
+    {label:'News / Incidents',  date:d.vendor_log?.[0]?.date, key:'news'},
+  ];
+  checks.forEach(c=>{
+    const el=document.createElement('div'); el.className='fp-item';
+    const hasData=c.date||c.url;
+    const staleCheck=c.date?isStale(c.date):'unknown';
+    const icon=hasData?(staleCheck==='fresh'?'✅':staleCheck==='stale'?'⚠️':'🔵'):'❓';
+    el.innerHTML=`<div class="fp-label">${c.label}</div><div class="fp-val"><span class="fp-check">${icon}</span>${hasData?'Data available':'Not found'}</div>${c.date?`<div class="fp-age">${c.date}</div>`:c.url?`<div class="fp-age" style="word-break:break-all;font-size:10px">${c.url.slice(0,40)}…</div>`:''}`;
+    fpGrid.appendChild(el);
+  });
+}
+function isStale(dateStr){
+  if(!dateStr) return 'unknown';
+  const d=new Date(dateStr); if(isNaN(d)) return 'unknown';
+  const days=(Date.now()-d)/(1000*86400);
+  return days<180?'fresh':days<365?'stale':'very-stale';
+}
+
+async function runFreshnessCheck(){
+  if(!gData) return;
+  const btn=document.getElementById('verifyBtn'); const btn2=document.getElementById('verifyBtn2');
+  [btn,btn2].forEach(b=>{if(b){b.textContent='↻ Checking…';b.classList.add('running');}});
+  try{
+    const vendor=gData._meta?.vendor_queried||document.getElementById('vInput').value;
+    const domain=gData._meta?.domain||inferDomain(vendor);
+    const runId=makeTaskId().replace('task-','verify-');
+    // Re-scrape key pages to check for changes
+    const seedPages=[
+      {id:'Privacy',url:`https://${domain}/privacy`},{id:'Security',url:`https://${domain}/security`},
+      {id:'Trust',url:`https://${domain}/trust`},{id:'Compliance',url:`https://${domain}/compliance`},
+      {id:'DPA',url:`https://${domain}/dpa`},{id:'Home',url:`https://${domain}`}
+    ];
+    const allowed=(gData._meta?.source_urls_allowed||[]).map((url,i)=>({id:'KnownSource'+i,url}));
+    const pagesToCheck=uniqByUrl([...seedPages,...allowed]).slice(0,30);
+    let freshData={};
+    let sourceFetchLog=[];
+    for(const pg of pagesToCheck){
+      try{
+        const html=await fetchProxy(pg.url);
+        const txt=cleanHtml(html);
+        const ok=txt.length>150&&!looksLikeMissingPage(txt);
+        sourceFetchLog.push({id:pg.id,url:pg.url,ok,chars:txt.length});
+        if(ok)freshData[pg.url]=txt.slice(0,2500);
+      }catch(e){sourceFetchLog.push({id:pg.id,url:pg.url,ok:false,chars:0,error:e.message});}
+    }
+    // Ask AI to verify freshness with detailed changelog
+    const freshPrompt=`You are verifying if vendor data is current.
+
+VENDOR: "${vendor}"
+ORIGINAL DATA: ${JSON.stringify({
+      compliance:{last_audit_date:gData.compliance?.last_audit_date,iso_27701:gData.compliance?.iso_27701,iso_27001:gData.compliance?.iso_27001,soc2_type2:gData.compliance?.soc2_type2},
+      privacy_data:{last_privacy_policy_update:gData.privacy_data?.last_privacy_policy_update,dpa_available:gData.privacy_data?.dpa_available},
+      security:{last_pen_test_date:gData.security?.last_pen_test_date},
+      docs:{dpa_url:gData.docs?.dpa_url,privacy_policy_url:gData.docs?.privacy_policy_url}
+    },null,2).slice(0,2000)}
+
+FRESHLY SCRAPED PAGE CONTENT:
+${Object.entries(freshData).map(([url,v])=>`=== ${url} ===\n${v}`).join('\n\n')}
+
+Compare and identify:
+1. Any certifications that may have changed or expired (especially ISO 27701)
+2. Any policy dates that are newer than what was originally captured
+3. Any new information found not in original data
+4. For EACH field that changed, provide: field name, original value, new value, source URL, confidence score, and evidence text from the source
+5. Overall freshness assessment
+6. Do not report a changed value unless the current value is directly visible in the cited freshly scraped page content.
+
+Return JSON only:
+\`\`\`json
+{"freshness_score":"fresh|stale|outdated","checked_at":"${new Date().toISOString()}","field_checks":[{"field":"","original":"","current":"","changed":false,"source_url":"","confidence_score":0.0,"evidence":"","note":""}],"new_information":[],"recommendation":""}\`\`\``;
+
+    const rawText=await callAI(freshPrompt,3000);
+    const fence=rawText.match(/```json\s*([\s\S]*?)```/); const bare=rawText.match(/(\{[\s\S]*\})/s);
+    let freshnessResult; try{freshnessResult=JSON.parse(fence?fence[1]:bare?bare[1]:'{}');}catch(e){freshnessResult={freshness_score:'unknown',field_checks:[]};}
+
+    // Log verification results
+    const prevCheck=gData._meta?.freshness_checked_at;
+    if(gData._meta){
+      gData._meta.freshness_checked_at=new Date().toISOString();
+      if(!gData._meta.verification_log)gData._meta.verification_log=[];
+      gData._meta.verification_log.push({
+        ts:new Date().toISOString(),
+        field:'verification_run',
+        oldVal:prevCheck||'',
+        newVal:runId,
+        sourceUrl:'',
+        confidence:1,
+        note:`Fetched ${sourceFetchLog.filter(s=>s.ok).length}/${sourceFetchLog.length} sources for verification.`,
+        changeType:'system'
+      });
+      sourceFetchLog.forEach(s=>gData._meta.verification_log.push({
+        ts:new Date().toISOString(),
+        field:'source_fetch',
+        oldVal:'',
+        newVal:s.ok?`${s.chars} chars fetched`:'unavailable',
+        sourceUrl:s.url,
+        confidence:s.ok?1:0,
+        note:s.ok?'Source fetched and indexed for this verification run.':'Source failed, returned too little content, or looked like a missing page.',
+        changeType:s.ok?'verified':'rejected'
+      }));
+
+      // Add changed fields to verification log — and apply accepted changes to gData
+      (freshnessResult.field_checks||[]).forEach(fc=>{
+        if(fc.changed){
+          const sourceText=getFreshSourceText(freshData,fc.source_url)||'';
+          const current=String(fc.current||'').trim();
+          const evidence=String(fc.evidence||fc.note||'').trim();
+          const hasFetchedSource=!!sourceText;
+          const hasValue=current&&sourceText.toLowerCase().includes(current.toLowerCase());
+          const hasEvidence=evidence&&sourceText.toLowerCase().includes(evidence.slice(0,80).toLowerCase());
+          const highConfidence=(fc.confidence_score||0)>=0.8;
+          const accepted=hasFetchedSource&&highConfidence&&(hasValue||hasEvidence);
+          // Actually apply accepted changes to gData so subsequent verifications don't toggle
+          if(accepted&&fc.field&&fc.current!=null){
+            const parts=fc.field.split('.');
+            if(parts.length>=2){
+              const [obj,key]=parts;
+              if(gData[obj]!==undefined&&gData[obj]!==null){gData[obj][key]=fc.current;}
+            }
+          }
+          gData._meta.verification_log.push({
+            ts:new Date().toISOString(),
+            field:fc.field,
+            oldVal:fc.original,
+            newVal:fc.current,
+            sourceUrl:fc.source_url,
+            confidence:fc.confidence_score,
+            note:accepted?`✓ Applied: ${fc.note||''}`:`Rejected: ${!hasFetchedSource?'cited source was not fetched; ':''}${!highConfidence?'confidence below 80%; ':''}${!(hasValue||hasEvidence)?'new value/evidence not found in fetched source; ':''}${fc.note||''}`,
+            changeType:accepted?'updated':'rejected'
+          });
+        }
+      });
+
+      // Log unchanged fields too for audit trail
+      (freshnessResult.field_checks||[]).filter(fc=>!fc.changed).forEach(fc=>{
+        gData._meta.verification_log.push({
+          ts:new Date().toISOString(),
+          field:fc.field,
+          oldVal:fc.original,
+          newVal:fc.current,
+          sourceUrl:fc.source_url,
+          confidence:fc.confidence_score,
+          note:fc.note,
+          changeType:'verified'
+        });
+      });
+    }
+
+    // Update badge
+    const ageBadge=document.getElementById('freshBadge'); const ageLabel=document.getElementById('freshLabel');
+    const sc=freshnessResult.freshness_score;
+    ageBadge.className='freshness-badge '+(sc==='fresh'?'fresh':sc==='stale'?'stale':'very-stale');
+    ageLabel.textContent='Verified '+new Date().toLocaleTimeString()+' — '+(sc==='fresh'?'Data is current':sc==='stale'?'Some fields may be outdated':'Data outdated');
+
+    // Show modal with results
+    const detail=document.getElementById('freshDetail'); detail.innerHTML='';
+    if(freshnessResult.recommendation){const p=document.createElement('p');p.style.cssText='font-size:13px;color:var(--ink2);margin-bottom:14px;line-height:1.6;padding:10px 13px;background:var(--s2);border-radius:var(--rxs);border:1px solid var(--e)';p.textContent='AI Assessment: '+freshnessResult.recommendation;detail.appendChild(p);}
+    (freshnessResult.field_checks||[]).forEach(fc=>{
+      const el=document.createElement('div'); el.style.cssText='padding:10px 13px;border-radius:var(--rxs);margin-bottom:8px;border:1px solid var(--e);background:var(--s2)';
+      el.innerHTML=`<div style="font-weight:500;font-size:13px;margin-bottom:4px;color:var(--ink)">${fc.field} ${fc.changed?'<span style="color:var(--amb)">⚠ Changed</span>':''}</div><div style="font-size:12px;color:var(--ink3)">Original: ${fc.original||'—'}<br>Current: ${fc.current||'—'}</div>${fc.note?`<div style="font-size:11px;color:var(--ink4);margin-top:3px">${fc.note}</div>`:''}${fc.source_url?`<div style="font-size:10px;color:var(--g1);margin-top:4px;font-family:'DM Mono',monospace">${fc.source_url}</div>`:''}`;
+      detail.appendChild(el);
+    });
+    if((freshnessResult.new_information||[]).length){const h=document.createElement('div');h.style.cssText='font-weight:600;font-size:12px;color:var(--ink);margin:12px 0 6px';h.textContent='New information found:';detail.appendChild(h);freshnessResult.new_information.forEach(n=>{const el=document.createElement('div');el.style.cssText='font-size:12px;color:var(--ink3);padding:6px 10px;background:var(--gg);border:1px solid rgba(21,163,74,.2);border-radius:var(--rxs);margin-bottom:4px';el.textContent='➕ '+n;detail.appendChild(el);});}
+    openModal('fresh');
+    renderVerificationLog(gData);
+  }catch(err){alert('Verification failed: '+err.message);}
+  finally{[btn,btn2].forEach(b=>{if(b){b.textContent='↻ Verify now';b.classList.remove('running');}});}
+}
+function openFreshModal(){if(gData)runFreshnessCheck();}
+
+// ═══════════════════════════════
+// PROMPT
+// ═══════════════════════════════
+function buildPrompt(vendor,product,ctx,srcs,domain,focusedCtx='',allowedUrls=[]){
+  const hasScrape=ctx.length>200;
+  return `You are a senior enterprise procurement risk analyst. Conduct a thorough vendor assessment for procurement, legal, compliance, and privacy review teams.
+
+VENDOR: "${vendor}" (domain: ${domain})
+PRODUCT/SERVICE: "${product}"
+
+${hasScrape?`WEB-SCRAPED CONTENT (PRIMARY source — extract facts directly):\n${ctx}\n\n---`:  'No web content scraped. Do not populate vendor-specific facts that require current evidence.'}
+
+HIGH-SIGNAL SEARCH EXTRACTS FROM LOCAL VECTOR INDEX:
+${focusedCtx||'No focused extracts available.'}
+
+DISCOVERED URL ALLOWLIST FOR DOCUMENT LINKS:
+${allowedUrls.map(u=>'- '+u).join('\n')||'(none)'}
+
+CRITICAL REQUIREMENTS:
+1. SOURCE CITATIONS: For EVERY field you populate, include source_url (the exact URL from scraped content) and confidence_score (0.0-1.0)
+2. URL VALIDATION: Only include URLs from the allowlist above or a source page URL that was fetched. Do NOT invent likely paths such as /dpa.
+3. ISO 27701: Check specifically for ISO 27701 / ISO/IEC 27701 in the scraped content and focused extracts. If found, set compliance.iso_27701 truthfully and cite the exact source.
+4. EVIDENCE: Include evidence_snippet for key findings (short quote from source).
+5. PROOF STANDARD: If a field lacks direct evidence, leave it null or Unknown. Do not use training memory as proof for current compliance, DPA, audit, or policy data.
+
+SCORING: Grade each domain A/B/C/D/F/NA. Give overall_score 0-100. Weight: Security=25%, Access Risk=25%, Compliance=20%, Privacy=15%, Legal/Financial=10%, Operational=5%.
+
+VENDOR LOG: Include 5-10 significant recent events (breaches, regulatory actions, product launches, acquisitions, leadership changes, funding, outages) with dates and categories.
+
+DOCUMENTS: Extract only URLs present in the allowlist. If no allowlisted DPA URL exists, set docs.dpa_url and privacy_data.dpa_url to null even if a likely URL pattern exists.
+
+Return ONLY valid JSON in \`\`\`json...\`\`\`:
+
+\`\`\`json
+{
+  "scores":{"overall":0,"legal_financial":"A|B|C|D|F|NA","compliance":"A|B|C|D|F|NA","security":"A|B|C|D|F|NA","privacy_data":"A|B|C|D|F|NA","access_risk":"A|B|C|D|F|NA","operational":"A|B|C|D|F|NA","score_rationale":null},
+  "flags":[{"severity":"red|amber|green","title":null,"detail":null,"source_url":null,"confidence_score":0.0}],
+  "verdict":{"recommendation":"Approve|Approve with conditions|Escalate for review|Reject","risk_tier":"Low|Medium|High|Critical","summary":null},
+  "vendor_log":[{"date":null,"category":"breach|regulatory|product|acquisition|financial|leadership|outage|partnership","headline":null,"detail":null,"source_url":null,"confidence_score":0.0}],
+  "docs":{
+    "privacy_policy_url":null,"terms_of_service_url":null,"dpa_url":null,"msa_url":null,"sla_url":null,"security_policy_url":null,"trust_page_url":null,"compliance_page_url":null,"audit_reports_url":null,"subprocessors_url":null,"cookie_policy_url":null,"acceptable_use_url":null,"support_url":null,"api_docs_url":null,"status_page_url":null,"gdpr_page_url":null,"ccpa_page_url":null,"hipaa_page_url":null,"vulnerability_disclosure_url":null,"changelog_url":null
+  },
+  "access_risk":{"system_access_required":"Yes|No|Unknown","system_access_detail":null,"data_pii_access":"Yes|No|Unknown","pii_categories":[],"sensitive_data_types":[],"typical_criticality":"Low|Medium|High|Critical","criticality_rationale":null,"network_connectivity_required":"Yes|No|Unknown","privileged_access_required":"Yes|No|Unknown","admin_access_required":"Yes|No|Unknown","data_storage_countries":[],"cloud_providers_used":[],"data_residency_options":[],"data_retention_policy":null,"data_portability":null,"data_deletion_on_offboarding":null,"subprocessors_with_data_access":"Yes|No|Unknown","subprocessors_list_url":null,"fourth_party_risk_disclosure":null,"gdpr_role":null},
+  "legal_financial":{"legal_name":null,"trade_name":null,"parent_company":null,"ultimate_beneficial_owner":null,"company_type":null,"stock_ticker":null,"year_founded":null,"employee_count_approx":null,"hq_address":{"street":null,"city":null,"state":null,"country":null,"postal_code":null},"other_offices":[],"website":null,"revenue_approx":null,"funding_stage":null,"last_funding_amount":null,"last_funding_date":null,"market_cap":null,"notable_investors":[],"financial_stability_signals":null,"public_since":null,"recent_ma_activity":null,"contract_min_term":null,"contract_auto_renewal":null,"contract_renewal_notice":null,"exit_clause_notes":null,"termination_for_cause":null,"indemnification_notes":null,"liability_cap_notes":null,"ip_ownership_notes":null,"governing_law":null,"dispute_resolution":null,"force_majeure_clause":null,"audit_rights":null,"known_litigation":null,"regulatory_fines_history":null,"bbb_rating":null,"duns_number":null},
+  "compliance":{"soc2_type1":null,"soc2_type2":null,"soc2_scope":null,"iso_27001":null,"iso_27017":null,"iso_27018":null,"iso_27701":null,"iso_9001":null,"iso_22301":null,"hipaa_baa_available":null,"hipaa_hitech":null,"pci_dss":null,"pci_dss_level":null,"fedramp":null,"fedramp_level":null,"gdpr_compliant":null,"ccpa_compliant":null,"csa_star":null,"csa_star_level":null,"nist_csf":null,"nist_800_53":null,"cmmc":null,"tx_ramp":null,"stateramp":null,"soc1":null,"isae_3402":null,"c5":null,"irap":null,"other_certifications":[],"trust_page_url":null,"last_audit_date":null,"audit_frequency":null,"audit_firm":null,"shared_audit_reports":null,"regulatory_body_oversight":null,"regulatory_notes":null,"known_violations":null,"data_residency_certifications":[],"healthcare_specific":null,"financial_services_specific":null,"government_specific":null,"education_specific":null},
+  "security":{"encryption_in_transit":null,"encryption_at_rest":null,"key_management":null,"fips_140_2":null,"mfa_enforced":null,"mfa_types":[],"sso_supported":null,"sso_protocols":[],"saml_supported":null,"oidc_supported":null,"role_based_access":null,"attribute_based_access":null,"privileged_access_management":null,"zero_trust_architecture":null,"pen_testing_frequency":null,"last_pen_test_date":null,"pen_test_firm":null,"bug_bounty_program":null,"vuln_disclosure_policy_url":null,"vulnerability_sla":null,"siem_monitoring":null,"edr_deployed":null,"dlp_implemented":null,"ddos_protection":null,"waf_deployed":null,"network_segmentation":null,"secure_sdlc":null,"code_scanning":null,"dependency_scanning":null,"secrets_management":null,"incident_response_plan":null,"incident_notification_sla":null,"tabletop_exercises":null,"security_contact_email":null,"known_breaches":null,"breach_disclosure_history":null,"cvss_patch_sla":null},
+  "privacy_data":{"privacy_policy_url":null,"last_privacy_policy_update":null,"dpa_available":null,"dpa_url":null,"dpa_standard_terms":null,"standard_contractual_clauses":null,"binding_corporate_rules":null,"gdpr_lawful_basis":null,"data_minimization_policy":null,"purpose_limitation":null,"consent_management":null,"consent_withdrawal_process":null,"right_to_access":null,"right_to_deletion":null,"right_to_portability":null,"right_to_rectification":null,"right_to_object":null,"data_subject_request_sla":null,"data_subject_request_process":null,"breach_notification_to_customers_hours":null,"breach_notification_to_regulators_hours":null,"cross_border_transfer_mechanism":null,"privacy_shield_successor":null,"uses_data_for_ai_training":null,"opt_out_of_ai_training":null,"anonymization_approach":null,"pseudonymization_used":null,"children_data_policy":null,"cookie_policy_url":null,"dpo_appointed":null,"dpo_contact":null,"privacy_by_design":null,"records_of_processing":null},
+  "operational":{"uptime_sla":null,"historical_uptime":null,"status_page_url":null,"last_major_outage":null,"rto":null,"rpo":null,"dr_plan_tested":null,"dr_test_frequency":null,"backup_frequency":null,"backup_encryption":null,"multi_region_redundancy":null,"cdn_used":null,"support_tiers":[],"support_channels":[],"support_hours":null,"p1_response_sla":null,"dedicated_account_manager":null,"customer_success_manager":null,"implementation_support":null,"training_provided":null,"documentation_quality":null,"employee_background_checks":null,"security_training_frequency":null,"nda_for_employees":null,"insider_threat_program":null,"offboarding_process":null,"customer_references_available":null,"g2_rating":null,"g2_review_count":null,"gartner_recognition":null,"forrester_recognition":null,"esg_policy":null,"diversity_policy":null,"carbon_neutral":null,"supply_chain_risk_program":null},
+  "product":{"description":null,"value_proposition":null,"deployment_model":null,"hosting_model":null,"target_market":null,"primary_use_cases":[],"key_features":[],"key_integrations":[],"api_available":null,"api_authentication":null,"webhook_support":null,"mobile_app":null,"pricing_model":null,"pricing_indicative":null,"free_trial_available":null,"implementation_timeline":null,"onboarding_complexity":null,"customization_options":null,"vendor_lock_in_risk":null,"data_export_formats":[],"alternative_vendors":[],"product_roadmap_public":null},
+  "onetrust_procurement_notes":null,
+  "_field_sources":{"field_name":{"source_url":"url","confidence_score":0.0,"evidence_snippet":"text"}}
+}
+\`\`\``;
+}
+
+// ═══════════════════════════════
+// RENDER
+// ═══════════════════════════════
+function renderCrawlLog(){
+  const grid=document.getElementById('crawlLogGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  if(!crawlLog.length){grid.innerHTML='<div class="vlog-item"><span style="color:var(--ink4)">No crawl activity recorded yet. Run an assessment first.</span></div>';return;}
+  crawlLog.forEach(entry=>{
+    const ok=entry.status.includes('scraped')||entry.status==='reachable'||entry.status==='discovered-reachable';
+    const fail=entry.status.includes('404')||entry.status.includes('error')||entry.status==='empty-content'||entry.status==='discovered-empty'||entry.status==='llm-skipped';
+    const info=entry.status==='init'||entry.status==='done'||entry.status==='validate'||entry.status==='(start)'||entry.status==='(validate)'||entry.status==='(complete)';
+    const el=document.createElement('div');
+    el.className='vlog-item'+(ok?' added':fail?' removed':info?' changed':'');
+    const icon=ok?'✅':fail?'❌':'ℹ️';
+    const ts=new Date(entry.ts).toLocaleTimeString();
+    const urlDisplay=entry.url.length>80?entry.url.slice(0,80)+'…':entry.url;
+    el.innerHTML=`<div class="vlog-ts">${ts}</div><div class="vlog-field">${icon} ${entry.status.toUpperCase().replace(/-/g,' ')}</div><div class="vlog-val"><a href="${entry.url.startsWith('http')?entry.url:'#'}" target="_blank" style="color:var(--g1);text-decoration:none;font-size:11px;font-family:'DM Mono',monospace">${urlDisplay}</a></div>${entry.chars?`<div style="font-size:10px;color:var(--ink4);font-family:'DM Mono',monospace;margin-top:2px">${entry.chars.toLocaleString()} chars extracted</div>`:''}${entry.note?`<div style="font-size:10px;color:var(--ink3);margin-top:2px">${entry.note}</div>`:''}`;
+    grid.appendChild(el);
+  });
+  const ok=crawlLog.filter(e=>e.status.includes('scraped')||e.status==='reachable').length;
+  const fail=crawlLog.filter(e=>e.status.includes('404')||e.status.includes('error')||e.status.includes('unavailable')).length;
+  const summary=document.createElement('div');
+  summary.style.cssText='padding:10px 14px;font-size:12px;color:var(--ink3);border-top:1px solid var(--e);background:var(--s2);font-family:"DM Mono",monospace';
+  summary.textContent=`Summary: ${ok} pages successfully fetched · ${fail} URLs returned 404 or failed · ${crawlLog.length} total log entries`;
+  grid.appendChild(summary);
+}
+
+async function render(d){
+  const name=d.legal_financial?.trade_name||d.legal_financial?.legal_name||d._meta?.vendor_queried||'?';
+  const avEl=document.getElementById('coAv');
+  const logoUrl=gLogoUrl||d._meta?.logo_url;
+  if(logoUrl){
+    avEl.innerHTML=`<img src="${logoUrl}" alt="" onerror="this.style.display='none';this.parentElement.textContent='${name.charAt(0).toUpperCase()}';">`;
+  }else{
+    avEl.textContent=name.charAt(0).toUpperCase();
+  }
+  document.getElementById('coName').innerHTML=`${name}<span class="co-logo">${d._meta?.domain||''}</span>`;
+  document.getElementById('coProd').textContent=d._meta?.product_service||'';
+  renderScorecard(d);renderVerdict(d);renderSummary(d);renderAccess(d);
+  renderLegal(d);renderCompliance(d);renderSecurity(d);renderPrivacy(d);
+  renderOperational(d);await renderDocs(d);renderLog(d);renderSources(d);renderVerificationLog(d);renderCrawlLog();renderJSON(d);
+  switchTab('summary');
+}
+
+function renderScorecard(d){
+  const sc=d.scores||{};
+  const domains=[{k:'legal_financial',l:'Legal/Fin'},{k:'compliance',l:'Compliance'},{k:'security',l:'Security'},{k:'privacy_data',l:'Privacy'},{k:'access_risk',l:'Access Risk'},{k:'operational',l:'Operational'}];
+  const g=document.getElementById('domainScores'); g.innerHTML='';
+  domains.forEach(({k,l})=>{const grade=sc[k]||'NA';const el=document.createElement('div');el.className='ds';el.innerHTML=`<div class="ds-l">${l}</div><div class="ds-v ${grade}">${grade}</div>`;g.appendChild(el);});
+  const score=Math.max(0,Math.min(100,parseInt(sc.overall)||0));
+  const col=score>=80?'#15803d':score>=60?'#16a34a':score>=40?'#d97706':score>=20?'#ea580c':'#dc2626';
+  const rf=document.getElementById('ringFill'); rf.style.stroke=col; rf.style.strokeDashoffset=232.5;
+  setTimeout(()=>{rf.style.strokeDashoffset=232.5-(232.5*(score/100));},100);
+  const rn=document.getElementById('ringN'); rn.textContent=score; rn.style.color=col;
+}
+
+function renderVerdict(d){
+  const v=d.verdict||{},tier=v.risk_tier||'Medium';
+  const icons={Low:'✅',Medium:'⚠️',High:'🔶',Critical:'🚨'},cls={Low:'low',Medium:'medium',High:'high',Critical:'critical'};
+  const el=document.getElementById('verdict'); el.className='verdict '+(cls[tier]||'medium');
+  document.getElementById('vi').textContent=icons[tier]||'⚠️';
+  document.getElementById('vtitle').textContent=`${v.recommendation||'Review Required'} — ${tier} Risk`;
+  document.getElementById('vtext').textContent=v.summary||'';
+}
+
+function renderSummary(d){
+  const flags=document.getElementById('flagsGrid'); flags.innerHTML='';
+  (d.flags||[]).forEach(f=>{
+    const el=document.createElement('div');
+    const ico={red:'🚩',amber:'⚠️',green:'✅'}[f.severity]||'ℹ️';
+    el.className='flag '+(f.severity||'amber');
+    const confBadge=f.confidence_score!=null?`<span style="font-family:'DM Mono',monospace;font-size:9px;opacity:.7;margin-left:6px">${Math.round((f.confidence_score||0)*100)}% conf</span>`:'';
+    const srcLink=f.source_url?`<div style="margin-top:5px"><a href="${f.source_url}" target="_blank" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--g1);text-decoration:none;word-break:break-all">🔗 ${f.source_url.length>60?f.source_url.slice(0,60)+'…':f.source_url}</a></div>`:'<div style="font-size:10px;color:var(--ink4);margin-top:4px;font-family:\'DM Mono\',monospace">No source URL — based on absence of evidence in crawled pages</div>';
+    el.innerHTML=`<span class="flag-ico">${ico}</span><div class="flag-txt"><strong>${f.title||''}${confBadge}</strong>${f.detail||''}${srcLink}</div>`;
+    flags.appendChild(el);
+  });
+  if(!d.flags?.length)flags.innerHTML='<div style="color:var(--ink4);font-size:13px">No flags generated.</div>';
+  const sc=d.scores||{};
+  const G2N={A:95,B:78,C:58,D:35,F:10,NA:null},GC={A:'#15803d',B:'#16a34a',C:'#d97706',D:'#ea580c',F:'#dc2626',NA:'#9cbfaa'};
+  let html=`<thead><tr><th>Domain</th><th>Grade</th><th>Score Indicator</th><th>Weight</th></tr></thead><tbody>`;
+  [{d:'Legal & Financial',k:'legal_financial',w:'10%'},{d:'Compliance & Certs',k:'compliance',w:'20%'},{d:'Security Posture',k:'security',w:'25%'},{d:'Privacy & Data',k:'privacy_data',w:'15%'},{d:'Access & Risk',k:'access_risk',w:'25%'},{d:'Operational',k:'operational',w:'5%'}].forEach(({d:domain,k,w})=>{
+    const g=sc[k]||'NA',n=G2N[g],col=GC[g]||'#9cbfaa';
+    const bar=n!=null?`<div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${n}%;background:${col}"></div></div><span class="pct">${n}%</span></div>`:'<span style="color:var(--ink4);font-size:12px">N/A</span>';
+    html+=`<tr><td>${domain}</td><td><span class="grade" style="color:${col}">${g}</span></td><td>${bar}</td><td style="color:var(--ink4);font-size:12px;font-family:'DM Mono',monospace">${w}</td></tr>`;
+  });
+  html+='</tbody>'; document.getElementById('scoreTable').innerHTML=html;
+  const ot=document.getElementById('otnotes'); ot.innerHTML='';
+  if(d.onetrust_procurement_notes){const p=document.createElement('p');p.textContent=d.onetrust_procurement_notes;ot.appendChild(p);}
+  else ot.innerHTML='<p style="color:var(--ink4)">No notes generated.</p>';
+}
+
+function renderAccess(d){
+  const ar=d.access_risk||{};
+  const tiles=[{l:'System / Infra Access',v:ar.system_access_required,s:ar.system_access_detail},{l:'Data / PII Access',v:ar.data_pii_access,s:(ar.pii_categories||[]).join(', ')||null},{l:'Network Connectivity',v:ar.network_connectivity_required},{l:'Privileged Access',v:ar.privileged_access_required},{l:'Admin Access Required',v:ar.admin_access_required},{l:'Typical Criticality',v:ar.typical_criticality,s:ar.criticality_rationale,crit:true},{l:'Subprocessors w/ Data',v:ar.subprocessors_with_data_access},{l:'GDPR Role',v:ar.gdpr_role}];
+  const g=document.getElementById('accessTiles'); g.innerHTML='';
+  tiles.forEach(({l,v,s,crit})=>{if(!v)return;let cls='';if(crit)cls={Low:'low',Medium:'medium',High:'high',Critical:'critical'}[v]||'';else cls=v==='Yes'?'yes':v==='No'?'no':v==='Unknown'?'unk':'';const t=document.createElement('div');t.className='rtile';t.innerHTML=`<div class="rt-l">${l}</div><div class="rt-v ${cls}">${v}</div>${s?`<div class="rt-s">${s}</div>`:''}`;g.appendChild(t);});
+  cells('storageGrid',[{l:'Storage Countries',v:(ar.data_storage_countries||[]).join(', ')||null},{l:'Cloud Providers',v:(ar.cloud_providers_used||[]).join(', ')||null},{l:'Data Residency Options',v:(ar.data_residency_options||[]).join(', ')||null},{l:'Data Retention Policy',v:ar.data_retention_policy},{l:'Data Portability',v:ar.data_portability},{l:'Deletion on Offboarding',v:ar.data_deletion_on_offboarding}]);
+  cells('thirdGrid',[{l:'Subprocessors with Data Access',v:ar.subprocessors_with_data_access},{l:'Subprocessors List',v:ar.subprocessors_list_url,mono:true},{l:'4th-Party Risk Disclosure',v:ar.fourth_party_risk_disclosure},{l:'Sensitive Data Types',v:(ar.sensitive_data_types||[]).join(', ')||null}]);
+}
+
+function renderLegal(d){
+  const l=d.legal_financial||{},a=l.hq_address||{};
+  cells('corpGrid',[{l:'Legal Name',v:l.legal_name},{l:'Trade Name',v:l.trade_name},{l:'Parent Company',v:l.parent_company},{l:'Ultimate Owner',v:l.ultimate_beneficial_owner},{l:'Company Type',v:l.company_type},{l:'Ticker',v:l.stock_ticker,mono:true},{l:'Founded',v:l.year_founded},{l:'Employees',v:l.employee_count_approx},{l:'HQ Address',v:[a.street,a.city,a.state,a.country,a.postal_code].filter(Boolean).join(', ')},{l:'Other Offices',v:(l.other_offices||[]).join('; ')||null},{l:'Website',v:l.website,mono:true},{l:'DUNS Number',v:l.duns_number,mono:true}]);
+  cells('finGrid',[{l:'Revenue (approx)',v:l.revenue_approx},{l:'Funding Stage',v:l.funding_stage},{l:'Last Funding',v:l.last_funding_amount},{l:'Last Funding Date',v:l.last_funding_date},{l:'Market Cap',v:l.market_cap},{l:'Key Investors',v:(l.notable_investors||[]).join(', ')||null},{l:'Financial Signals',v:l.financial_stability_signals},{l:'Recent M&A Activity',v:l.recent_ma_activity}]);
+  cells('contractGrid',[{l:'Min Contract Term',v:l.contract_min_term},{l:'Auto-Renewal',v:bfmt(l.contract_auto_renewal)},{l:'Renewal Notice Period',v:l.contract_renewal_notice},{l:'Exit / Termination Clause',v:l.exit_clause_notes},{l:'Termination for Cause',v:bfmt(l.termination_for_cause)},{l:'Indemnification',v:l.indemnification_notes},{l:'Liability Cap',v:l.liability_cap_notes},{l:'IP Ownership',v:l.ip_ownership_notes},{l:'Governing Law',v:l.governing_law},{l:'Dispute Resolution',v:l.dispute_resolution},{l:'Force Majeure Clause',v:bfmt(l.force_majeure_clause)},{l:'Audit Rights',v:bfmt(l.audit_rights)}]);
+  cells('legalIssGrid',[{l:'Known Litigation',v:l.known_litigation},{l:'Regulatory Fines',v:l.regulatory_fines_history},{l:'BBB Rating',v:l.bbb_rating}]);
+}
+
+function renderCompliance(d){
+  const c=d.compliance||{};
+  const certMap=[['soc2_type2','SOC 2 Type II'],['soc2_type1','SOC 2 Type I'],['iso_27001','ISO 27001'],['iso_27017','ISO 27017 (Cloud)'],['iso_27018','ISO 27018 (PII)'],['iso_27701','ISO 27701 (Privacy)'],['iso_9001','ISO 9001'],['iso_22301','ISO 22301 (BCMS)'],['hipaa_baa_available','HIPAA BAA'],['hipaa_hitech','HIPAA HITECH'],['pci_dss','PCI DSS'],['fedramp','FedRAMP'],['gdpr_compliant','GDPR'],['ccpa_compliant','CCPA'],['csa_star','CSA STAR'],['nist_csf','NIST CSF'],['nist_800_53','NIST 800-53'],['cmmc','CMMC'],['tx_ramp','TX-RAMP'],['stateramp','StateRAMP'],['soc1','SOC 1'],['isae_3402','ISAE 3402'],['c5','BSI C5'],['irap','IRAP']];
+  const g=document.getElementById('certGrid'); g.innerHTML='';
+  certMap.forEach(([k,label])=>{
+    const v=c[k];const ok=v===true||(typeof v==='string'&&/yes|certified|compliant|available/i.test(v));const unk=v===null||v===undefined;
+    const src=d._field_sources?.[k]||d._field_sources?.[`compliance.${k}`]||null;
+    const srcTitle=src?.source_url?` — Source: ${src.source_url}`:'';
+    const confTip=src?.confidence_score!=null?` (${Math.round(src.confidence_score*100)}% conf)`:'';
+    const el=document.createElement('div');el.className='cert '+(unk?'unk':ok?'yes':'no');
+    el.title=(typeof v==='string'&&v.length>3?v:'')+(srcTitle||'')+(confTip||'');
+    el.style.cursor=src?.source_url?'pointer':'default';
+    if(src?.source_url)el.onclick=()=>window.open(src.source_url,'_blank');
+    el.innerHTML=`<span class="cert-d"></span>${label}${src?.source_url?'<span style="font-size:9px;margin-left:4px;opacity:.6">🔗</span>':''}`;
+    g.appendChild(el);
+  });
+  (c.other_certifications||[]).forEach(cert=>{const el=document.createElement('div');el.className='cert yes';el.innerHTML=`<span class="cert-d"></span>${cert}`;g.appendChild(el);});
+  cells('regGrid',[{l:'Regulatory Body',v:c.regulatory_body_oversight},{l:'Regulatory Notes',v:c.regulatory_notes},{l:'SOC 2 Scope',v:c.soc2_scope},{l:'PCI DSS Level',v:c.pci_dss_level},{l:'FedRAMP Level',v:c.fedramp_level},{l:'CSA STAR Level',v:c.csa_star_level},{l:'Known Violations',v:c.known_violations}]);
+  cells('auditGrid',[{l:'Last Audit Date',v:c.last_audit_date},{l:'Audit Frequency',v:c.audit_frequency},{l:'Audit Firm',v:c.audit_firm},{l:'Audit Reports Shared',v:bfmt(c.shared_audit_reports)},{l:'Trust Page',v:c.trust_page_url,mono:true}]);
+  cells('industryGrid',[{l:'Healthcare',v:c.healthcare_specific},{l:'Financial Services',v:c.financial_services_specific},{l:'Government',v:c.government_specific},{l:'Education',v:c.education_specific},{l:'Data Residency Certs',v:(c.data_residency_certifications||[]).join(', ')||null}]);
+}
+
+function renderSecurity(d){
+  const s=d.security||{};
+  cells('encGrid',[{l:'Encryption in Transit',v:s.encryption_in_transit},{l:'Encryption at Rest',v:s.encryption_at_rest},{l:'Key Management',v:s.key_management},{l:'FIPS 140-2',v:bfmt(s.fips_140_2)},{l:'MFA Enforced',v:bfmt(s.mfa_enforced)},{l:'MFA Types',v:(s.mfa_types||[]).join(', ')||null},{l:'SSO Supported',v:bfmt(s.sso_supported)},{l:'SSO Protocols',v:(s.sso_protocols||[]).join(', ')||null},{l:'SAML',v:bfmt(s.saml_supported)},{l:'OIDC',v:bfmt(s.oidc_supported)},{l:'Role-Based Access',v:bfmt(s.role_based_access)},{l:'Attribute-Based Access',v:bfmt(s.attribute_based_access)},{l:'PAM',v:bfmt(s.privileged_access_management)},{l:'Zero Trust',v:bfmt(s.zero_trust_architecture)},{l:'Secrets Management',v:bfmt(s.secrets_management)}]);
+  cells('vulnGrid',[{l:'Pen Test Frequency',v:s.pen_testing_frequency},{l:'Last Pen Test',v:s.last_pen_test_date},{l:'Pen Test Firm',v:s.pen_test_firm},{l:'Bug Bounty',v:bfmt(s.bug_bounty_program)},{l:'Vuln Disclosure Policy',v:s.vuln_disclosure_policy_url,mono:true},{l:'Vuln Remediation SLA',v:s.vulnerability_sla},{l:'CVSS Patch SLA',v:s.cvss_patch_sla},{l:'Secure SDLC',v:bfmt(s.secure_sdlc)},{l:'Code Scanning',v:bfmt(s.code_scanning)},{l:'Dependency Scanning',v:bfmt(s.dependency_scanning)}]);
+  cells('irGrid',[{l:'IR Plan',v:bfmt(s.incident_response_plan)},{l:'Incident Notif. SLA',v:s.incident_notification_sla},{l:'Tabletop Exercises',v:bfmt(s.tabletop_exercises)},{l:'SIEM Monitoring',v:bfmt(s.siem_monitoring)},{l:'EDR Deployed',v:bfmt(s.edr_deployed)},{l:'DLP Implemented',v:bfmt(s.dlp_implemented)},{l:'Known Breaches',v:s.known_breaches},{l:'Breach Disclosure History',v:s.breach_disclosure_history},{l:'Security Contact',v:s.security_contact_email,mono:true}]);
+  cells('infraGrid',[{l:'DDoS Protection',v:bfmt(s.ddos_protection)},{l:'WAF',v:bfmt(s.waf_deployed)},{l:'Network Segmentation',v:bfmt(s.network_segmentation)},{l:'Security Summary',v:s.security_certifications_summary}]);
+}
+
+function renderPrivacy(d){
+  const p=d.privacy_data||{};
+  cells('dpGrid',[{l:'Privacy Policy URL',v:p.privacy_policy_url,mono:true},{l:'Last Policy Update',v:p.last_privacy_policy_update},{l:'DPA Available',v:bfmt(p.dpa_available)},{l:'DPA URL',v:p.dpa_url,mono:true},{l:'DPA Standard Terms',v:p.dpa_standard_terms},{l:'GDPR Lawful Basis',v:p.gdpr_lawful_basis},{l:'Data Minimization',v:p.data_minimization_policy},{l:'Purpose Limitation',v:p.purpose_limitation},{l:'Privacy by Design',v:bfmt(p.privacy_by_design)},{l:'Records of Processing',v:bfmt(p.records_of_processing)},{l:'DPO Appointed',v:bfmt(p.dpo_appointed)},{l:'DPO Contact',v:p.dpo_contact,mono:true},{l:'Cookie Policy',v:p.cookie_policy_url,mono:true}]);
+  cells('rightsGrid',[{l:'Right to Access',v:p.right_to_access},{l:'Right to Deletion',v:p.right_to_deletion},{l:'Right to Portability',v:p.right_to_portability},{l:'Right to Rectification',v:p.right_to_rectification},{l:'Right to Object',v:p.right_to_object},{l:'DSR Response SLA',v:p.data_subject_request_sla},{l:'DSR Process',v:p.data_subject_request_process},{l:'Consent Management',v:p.consent_management},{l:'Consent Withdrawal',v:p.consent_withdrawal_process},{l:'Children Data Policy',v:p.children_data_policy}]);
+  cells('xferGrid',[{l:'Cross-Border Mechanism',v:p.cross_border_transfer_mechanism},{l:'SCCs in Place',v:bfmt(p.standard_contractual_clauses)},{l:'Binding Corporate Rules',v:bfmt(p.binding_corporate_rules)},{l:'Privacy Shield Successor',v:p.privacy_shield_successor},{l:'Breach → Customer (hrs)',v:p.breach_notification_to_customers_hours},{l:'Breach → Regulator (hrs)',v:p.breach_notification_to_regulators_hours},{l:'Anonymization Approach',v:p.anonymization_approach},{l:'Pseudonymization',v:bfmt(p.pseudonymization_used)}]);
+  cells('subpGrid',[{l:'Uses Data for AI Training',v:p.uses_data_for_ai_training},{l:'AI Training Opt-Out',v:p.opt_out_of_ai_training}]);
+}
+
+function renderOperational(d){
+  const o=d.operational||{};
+  cells('slaGrid',[{l:'Uptime SLA',v:o.uptime_sla},{l:'Historical Uptime',v:o.historical_uptime},{l:'Status Page',v:o.status_page_url,mono:true},{l:'Last Major Outage',v:o.last_major_outage},{l:'RTO',v:o.rto},{l:'RPO',v:o.rpo},{l:'DR Plan Tested',v:bfmt(o.dr_plan_tested)},{l:'DR Test Frequency',v:o.dr_test_frequency},{l:'Backup Frequency',v:o.backup_frequency},{l:'Backup Encryption',v:bfmt(o.backup_encryption)},{l:'Multi-Region Redundancy',v:bfmt(o.multi_region_redundancy)},{l:'CDN Used',v:o.cdn_used}]);
+  cells('suppGrid',[{l:'Support Tiers',v:(o.support_tiers||[]).join(', ')||null},{l:'Support Channels',v:(o.support_channels||[]).join(', ')||null},{l:'Support Hours',v:o.support_hours},{l:'P1 Response SLA',v:o.p1_response_sla},{l:'Dedicated Account Mgr',v:bfmt(o.dedicated_account_manager)},{l:'Customer Success Mgr',v:bfmt(o.customer_success_manager)},{l:'Implementation Support',v:o.implementation_support},{l:'Training Provided',v:bfmt(o.training_provided)},{l:'Documentation Quality',v:o.documentation_quality},{l:'Customer References',v:bfmt(o.customer_references_available)},{l:'G2 Rating',v:o.g2_rating?`${o.g2_rating}${o.g2_review_count?' ('+o.g2_review_count+' reviews)':''}`:null},{l:'Gartner Recognition',v:o.gartner_recognition},{l:'Forrester Recognition',v:o.forrester_recognition}]);
+  cells('hrGrid',[{l:'Background Checks',v:bfmt(o.employee_background_checks)},{l:'Security Training',v:o.security_training_frequency},{l:'NDA for Employees',v:bfmt(o.nda_for_employees)},{l:'Insider Threat Program',v:bfmt(o.insider_threat_program)},{l:'Offboarding Process',v:o.offboarding_process},{l:'Supply Chain Risk Program',v:bfmt(o.supply_chain_risk_program)}]);
+  cells('esgGrid',[{l:'ESG Policy',v:bfmt(o.esg_policy)},{l:'Diversity & Inclusion',v:bfmt(o.diversity_policy)},{l:'Carbon Neutral',v:bfmt(o.carbon_neutral)}]);
+}
+
+async function renderDocs(d){
+  const docs=d.docs||{};const priv=d.privacy_data||{};const sec=d.security||{};const comp=d.compliance||{};const op=d.operational||{};
+
+  const legalDocs=[
+    {icon:'📄',title:'Privacy Policy',      sub:'Data processing notice',         url:docs.privacy_policy_url||priv.privacy_policy_url,       key:'privacy_policy'},
+    {icon:'📋',title:'Terms of Service',    sub:'Service agreement',               url:docs.terms_of_service_url,                               key:'tos'},
+    {icon:'🔏',title:'Data Processing Agmt',sub:'GDPR DPA / Data Agreement',       url:docs.dpa_url||priv.dpa_url,                              key:'dpa'},
+    {icon:'📝',title:'Master Service Agmt', sub:'MSA / Master Contract',           url:docs.msa_url,                                             key:'msa'},
+    {icon:'📊',title:'SLA / Service Levels',sub:'Uptime & response commitments',   url:docs.sla_url,                                             key:'sla'},
+    {icon:'🍪',title:'Cookie Policy',       sub:'Cookie usage & consent',          url:docs.cookie_policy_url||priv.cookie_policy_url,           key:'cookies'},
+    {icon:'⚖️',title:'Acceptable Use Policy',sub:'Prohibited uses & conduct',      url:docs.acceptable_use_url,                                  key:'aup'},
+    {icon:'🌍',title:'GDPR / Privacy Info', sub:'GDPR-specific page',              url:docs.gdpr_page_url,                                       key:'gdpr'},
+  ];
+
+  const compDocs=[
+    {icon:'🔒',title:'Security Policy',     sub:'Security practices overview',     url:docs.security_policy_url,                                key:'sec_policy'},
+    {icon:'🏆',title:'Trust / Compliance',  sub:'Compliance hub & certifications', url:docs.trust_page_url||comp.trust_page_url,                key:'trust'},
+    {icon:'📑',title:'Audit Reports',       sub:'SOC 2, ISO reports',              url:docs.audit_reports_url,                                   key:'audit_reports'},
+    {icon:'🔗',title:'Subprocessors List',  sub:'Third-party data processors',     url:docs.subprocessors_url||d.access_risk?.subprocessors_list_url, key:'subproc'},
+    {icon:'🐛',title:'Vuln. Disclosure',    sub:'Responsible disclosure policy',   url:docs.vulnerability_disclosure_url||sec.vuln_disclosure_policy_url, key:'vuln'},
+    {icon:'🇺🇸',title:'CCPA / US Privacy',  sub:'US privacy rights page',          url:docs.ccpa_page_url,                                       key:'ccpa'},
+    {icon:'🏥',title:'HIPAA Info',          sub:'HIPAA compliance details',        url:docs.hipaa_page_url,                                      key:'hipaa'},
+  ];
+
+  const prodDocs=[
+    {icon:'📚',title:'API Documentation',   sub:'Developer & integration docs',    url:docs.api_docs_url,                                        key:'api'},
+    {icon:'💬',title:'Support Portal',      sub:'Help centre & tickets',           url:docs.support_url,                                         key:'support'},
+    {icon:'🟢',title:'Status Page',         sub:'Uptime & incident history',       url:docs.status_page_url||op.status_page_url,                key:'status'},
+    {icon:'📰',title:'Changelog',           sub:'Product updates & releases',      url:docs.changelog_url,                                       key:'changelog'},
+  ];
+
+  await renderDocLinks('doclinks',  legalDocs);
+  await renderDocLinks('complinks', compDocs);
+  await renderDocLinks('prodlinks', prodDocs);
+}
+
+async function validateUrl(url,timeout=5000){
+  if(!url)return false;
+  try{
+    const html=await fetchProxy(url);
+    const txt=cleanHtml(html);
+    return txt.length>150&&!looksLikeMissingPage(txt);
+  }catch(e){return false;}
+}
+
+async function renderDocLinks(id,items){
+  const g=document.getElementById(id); g.innerHTML='';
+  // Show loading state
+  g.innerHTML='<div style="color:var(--ink4);font-size:12px;padding:12px">Validating links…</div>';
+
+  // Validate URLs in parallel with timeout
+  const validated=await Promise.all(items.map(async(item)=>{
+    if(!item.url)return{...item,valid:false};
+    const valid=await validateUrl(item.url,8000);
+    return{...item,valid};
+  }));
+
+  g.innerHTML='';
+  validated.forEach(({icon,title,sub,url,valid})=>{
+    const el=document.createElement(url?'a':'div');
+    if(url){el.href=url;el.target='_blank';el.rel='noopener';}
+    el.className='doclink '+(url?(valid?'':'missing'):'missing');
+    if(!valid&&url)el.title='URL returned 404 or failed validation';
+    el.innerHTML=`<div class="dl-icon">${icon}</div><div class="dl-info"><div class="dl-title">${title}</div><div class="dl-sub">${valid?'✅ Verified — click to open':url?'⚠️ May be unavailable':'Not found'}</div></div>`;
+    g.appendChild(el);
+  });
+}
+
+function renderLog(d){
+  const g=document.getElementById('newsGrid'); g.innerHTML='';
+  const events=(d.vendor_log||[]);
+  if(!events.length){g.innerHTML='<div class="news-empty">📰 No vendor events found. Try running a freshness check to pull recent news.</div>';return;}
+  const tagLabels={breach:'Breach',regulatory:'Regulatory',product:'Product',acquisition:'Acquisition',financial:'Financial',leadership:'Leadership',outage:'Outage',partnership:'Partnership'};
+  events.forEach(ev=>{
+    const el=document.createElement('div');
+    const cat=ev.category||'product';
+    el.className='news-item '+cat;
+    el.innerHTML=`<div class="news-date">${ev.date||'Date unknown'} <span class="news-tag ${cat}">${tagLabels[cat]||cat}</span></div><div class="news-headline">${ev.headline||''}</div>${ev.detail?`<div class="news-body">${ev.detail}</div>`:''}${ev.source_url?`<div style="font-size:10px;color:var(--g1);margin-top:4px;font-family:'DM Mono',monospace">📄 ${ev.source_url}</div>`:''}`;
+    g.appendChild(el);
+  });
+}
+
+function renderSources(d){
+  const grid=document.getElementById('sourcesGrid');
+  const scrapedEl=document.getElementById('scrapedSources');
+  if(!grid)return;
+  grid.innerHTML='';
+
+  // Collect all field sources from _field_sources
+  const fieldSources=d._field_sources||{};
+  const entries=Object.entries(fieldSources);
+
+  if(!entries.length){
+    grid.innerHTML='<div class="news-empty" style="padding:32px">📋 No source citations available. The AI did not provide field-level sources.</div>';
+  }else{
+    entries.forEach(([field,src])=>{
+      const el=document.createElement('div');
+      el.className='news-item product';
+      const confCls=src.confidence_score>=0.8?'fresh':src.confidence_score>=0.5?'stale':'very-stale';
+      const confColor=src.confidence_score>=0.8?'var(--g1)':src.confidence_score>=0.5?'var(--amb)':'var(--red)';
+      el.innerHTML=`
+        <div class="news-date" style="justify-content:space-between">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;color:var(--ink2)">${field.replace(/_/g,' ')}</span>
+          <span style="background:${confColor}22;color:${confColor};padding:2px 8px;border-radius:4px;font-size:10px">Conf: ${(src.confidence_score*100).toFixed(0)}%</span>
+        </div>
+        ${src.evidence_snippet?`<div class="news-body" style="margin-top:6px;font-family:'DM Mono',monospace;font-size:11px;background:var(--s3);padding:8px;border-radius:var(--rxs)">"${src.evidence_snippet.slice(0,200)}${src.evidence_snippet.length>200?'…':''}"</div>`:''}
+        ${src.source_url?`<div style="font-size:10px;color:var(--g1);margin-top:4px;font-family:'DM Mono',monospace">📄 <a href="${src.source_url}" target="_blank" rel="noopener">${src.source_url}</a></div>`:''}
+      `;
+      grid.appendChild(el);
+    });
+  }
+
+  // Show scraped sources
+  if(scrapedEl){
+    const sources=d._meta?.sources_scraped||[];
+    if(sources.length){
+      scrapedEl.innerHTML='<div class="igrid">'+sources.map(s=>`<div class="icell"><div class="ic-l">Source</div><div class="ic-v" style="font-family:'DM Mono',monospace;font-size:10px;word-break:break-all">${s}</div></div>`).join('')+'</div>';
+    }else{
+      scrapedEl.innerHTML='<div style="color:var(--ink4);font-size:13px">No sources scraped.</div>';
+    }
+  }
+}
+
+function renderJSON(d){document.getElementById('jblk').innerHTML=hlJSON(JSON.stringify(d,null,2));}
+
+function renderVerificationLog(d){
+  const grid=document.getElementById('verifyLogGrid');
+  if(!grid)return;
+  grid.innerHTML='';
+  const data=d||gData;
+  const log=data?._meta?.verification_log||[];
+
+  // Update stats
+  const statsEl=document.getElementById('verifyStats');
+  if(statsEl){
+    const total=log.length;
+    const changes=log.filter(l=>l.changeType==='updated').length;
+    const verified=log.filter(l=>l.changeType==='verified').length;
+    const rejected=log.filter(l=>l.changeType==='rejected').length;
+    statsEl.textContent=`${total} entries · ${changes} accepted changes · ${verified} verified · ${rejected} rejected`;
+  }
+
+  if(!log.length){
+    grid.innerHTML='<div class="news-empty" style="padding:40px">📋 No verification checks recorded yet. Click "Verify now" to check data freshness.</div>';
+    return;
+  }
+
+  // Group by timestamp
+  const grouped={};
+  log.forEach(l=>{
+    const ts=l.ts.slice(0,16).replace('T',' ');
+    if(!grouped[ts])grouped[ts]=[];
+    grouped[ts].push(l);
+  });
+
+  Object.entries(grouped).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([ts,items])=>{
+    const header=document.createElement('div');
+    header.style.cssText='padding:8px 14px;background:var(--e);font-family:"DM Mono",monospace;font-size:10px;font-weight:500;color:var(--ink2);border-bottom:1px solid var(--e)';
+    header.textContent=`📅 ${ts} (${items.length} fields checked)`;
+    grid.appendChild(header);
+
+    items.forEach(item=>{
+      const el=document.createElement('div');
+      const cls=item.changeType==='updated'?'added':item.changeType==='verified'||item.changeType==='system'?'changed':'removed';
+      el.className=`vlog-item ${cls}`;
+
+      const confCls=item.confidence>=0.8?'high':item.confidence>=0.5?'med':'low';
+      const confLabel=item.confidence!=null?`Conf: ${(item.confidence*100).toFixed(0)}%`:'';
+
+      el.innerHTML=`
+        <div class="vlog-ts">${new Date(item.ts).toLocaleString()} <span class="vlog-conf ${confCls}">${confLabel}</span></div>
+        <div class="vlog-field">${item.field}</div>
+        ${item.oldVal!==item.newVal?`<div style="margin-top:6px"><span class="vlog-val old">${item.oldVal||'—'}</span><span class="vlog-val new">→ ${item.newVal||'—'}</span></div>`:`<div class="vlog-val">✓ ${item.newVal||item.oldVal||'—'}</div>`}
+        ${item.sourceUrl?`<div class="vlog-src">📄 <a href="${item.sourceUrl}" target="_blank" rel="noopener">${item.sourceUrl}</a></div>`:''}
+        ${item.note?`<div style="font-size:10px;color:var(--ink4);margin-top:4px">${item.note}</div>`:''}
+      `;
+      grid.appendChild(el);
+    });
+  });
+
+  grid.scrollTop=0;
+}
+
+function exportVerificationLog(){
+  if(!gData){alert('No data to export');return;}
+  const log=gData._meta?.verification_log||[];
+  if(!log.length){alert('No verification entries yet');return;}
+  const csv=[
+    ['Timestamp','Field','Old Value','New Value','Change Type','Source URL','Confidence','Note'].join(','),
+    ...log.map(l=>[
+      l.ts,l.field,
+      `"${(l.oldVal||'').replace(/"/g,'""')}"`,
+      `"${(l.newVal||'').replace(/"/g,'""')}"`,
+      l.changeType,l.sourceUrl||'',
+      l.confidence!=null?(l.confidence*100).toFixed(0)+'%':'',
+      `"${(l.note||'').replace(/"/g,'""')}"`
+    ].join(','))
+  ].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`verification-log-${gData._meta?.vendor_queried||'vendor'}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════
+// HELPERS
+// ═══════════════════════════════
+function cells(id,items){
+  const g=document.getElementById(id); if(!g)return; g.innerHTML='';
+  const vis=items.filter(i=>i.v!=null&&i.v!==''&&i.v!==false);
+  if(!vis.length){g.innerHTML='<div style="color:var(--ink4);font-size:13px">No data found.</div>';return;}
+  vis.forEach(({l,v,mono})=>{const s=String(v);const isUrl=s.startsWith('http');const disp=isUrl?`<a href="${s}" target="_blank" rel="noopener">${s}</a>`:s;const el=document.createElement('div');el.className='icell';el.innerHTML=`<div class="ic-l">${l}</div><div class="ic-v${mono?' mono':''}">${disp}</div>`;g.appendChild(el);});
+}
+function bfmt(v){if(v===true)return 'Yes';if(v===false)return 'No';if(typeof v==='string'){if(/^yes$/i.test(v.trim()))return 'Yes';if(/^no$/i.test(v.trim()))return 'No';}return v;}
+function hlJSON(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{if(/^"/.test(m))return /:$/.test(m)?`<span class="jk">${m}</span>`:`<span class="js">${m}</span>`;if(/true|false/.test(m))return `<span class="jb">${m}</span>`;if(/null/.test(m))return `<span class="jnil">${m}</span>`;return `<span class="jn">${m}</span>`;});}
+function copyJSON(){if(!gData)return;navigator.clipboard.writeText(JSON.stringify(gData,null,2));document.querySelectorAll('.jcp,.cbtn').forEach(b=>{if(/copy/i.test(b.textContent)){const t=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=t,1800);}});}
+document.addEventListener('DOMContentLoaded',()=>{['vInput','pInput'].forEach(id=>document.getElementById(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')run();}));});
+</script>
+</body>
+</html>
