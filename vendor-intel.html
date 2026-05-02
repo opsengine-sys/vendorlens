@@ -440,6 +440,23 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
         ⚡ API calls for this provider are routed through the local server to avoid browser CORS restrictions.
       </div>
 
+      <!-- Test Connection -->
+      <div class="tc-row">
+        <button class="tc-btn" id="tcBtn" onclick="testConnection()">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Test connection
+        </button>
+        <span class="tc-latency" id="tcLatency" style="display:none"></span>
+      </div>
+      <div class="tc-result" id="tcResult" style="display:none">
+        <div class="tc-result-hdr">
+          <span class="tc-status-dot" id="tcDot"></span>
+          <span id="tcStatus"></span>
+          <button class="tc-close" onclick="document.getElementById('tcResult').style.display='none'">✕</button>
+        </div>
+        <div class="tc-reply" id="tcReply" style="display:none"></div>
+      </div>
+
       <div class="scraper-section">
         <div class="scraper-hdr"><span>Web Scraper</span></div>
         <div class="scraper-builtin">
