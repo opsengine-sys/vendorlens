@@ -414,7 +414,11 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
         </div>
         <div class="scraper-builtin">
           <span class="scraper-builtin-dot"></span>
-          <span class="scraper-builtin-label">Built-in scraper active — fetches pages directly from this server, no external account needed.</span>
+          <span class="scraper-builtin-label">Built-in scraper active — fetches pages server-side, no external account needed.</span>
+        </div>
+        <div class="scraper-builtin" id="lxStatus" style="display:none">
+          <span class="scraper-builtin-dot" id="lxDot" style="background:#7c3aed;box-shadow:0 0 0 2px #ede9fe"></span>
+          <span class="scraper-builtin-label" id="lxLabel" style="color:#4c1d95">LangExtract active — grounded source citations on every field.</span>
         </div>
         <details class="scraper-adv">
           <summary>Advanced: connect crawl4ai or ScrapeGraphAI</summary>
@@ -731,7 +735,7 @@ if(window.WORKATO_PAYLOAD){const w=window.WORKATO_PAYLOAD;if(w.vendor)document.g
 // ═══════════════════════════════
 // MODAL
 // ═══════════════════════════════
-function openModal(id){refreshModal();document.getElementById('mbg-'+id).classList.add('on');}
+function openModal(id){refreshModal();document.getElementById('mbg-'+id).classList.add('on');if(id==='ai')checkLangExtract().then(ok=>{const el=document.getElementById('lxStatus');if(el)el.style.display=ok?'flex':'none';});}
 function closeModal(id){document.getElementById('mbg-'+id).classList.remove('on');}
 function selProv(p){curProv=p;curModel=PROVS[p].def;refreshModal();}
 function refreshModal(){
@@ -1460,6 +1464,54 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
 // ═══════════════════════════════
 // CORE ASSESSMENT (shared by run + compare)
 // ═══════════════════════════════
+// ── LangExtract grounded extraction ─────────────────────────────────────────
+let _langextractAvailable=null; // null=unchecked, true/false
+async function checkLangExtract(){
+  if(_langextractAvailable!==null)return _langextractAvailable;
+  try{
+    const r=await fetch('/api/extract/health',{signal:AbortSignal.timeout(3000)});
+    _langextractAvailable=r.ok;
+  }catch(e){_langextractAvailable=false;}
+  return _langextractAvailable;
+}
+async function runLangExtract(results){
+  const available=await checkLangExtract();
+  if(!available)return {};
+  const apiKey=gKey(curProv);
+  if(!apiKey)return {};
+  // Pick the richest pages — security/privacy/compliance pages preferred
+  const priority=['Security','Trust','Compliance','Privacy','PrivacyPolicy','TrustCenter','Home'];
+  const sorted=[...results].sort((a,b)=>{
+    const ai=priority.indexOf(a.src),bi=priority.indexOf(b.src);
+    return (ai<0?99:ai)-(bi<0?99:bi);
+  });
+  const pages=sorted.slice(0,4);
+  const fieldSources={};
+  await Promise.all(pages.map(async pg=>{
+    if(!pg.txt||pg.txt.length<200)return;
+    try{
+      const r=await fetch('/api/extract',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:pg.txt.slice(0,12000),provider:curProv,model_id:curModel,api_key:apiKey,source_url:pg.url}),
+        signal:AbortSignal.timeout(90000)
+      });
+      if(!r.ok)return;
+      const data=await r.json();
+      for(const ex of (data.extractions||[])){
+        if(!ex.grounded)continue;
+        const fk=(ex.attributes?.field_key)||ex.extraction_class;
+        const conf=ex.attributes?.confidence==='high'?0.92:ex.attributes?.confidence==='medium'?0.72:0.5;
+        // First grounded match per field key wins (highest-priority page)
+        if(!fieldSources[fk]){
+          fieldSources[fk]={source_url:ex.source_url||pg.url,confidence_score:conf,evidence_snippet:ex.extraction_text};
+        }
+      }
+    }catch(e){}
+  }));
+  return fieldSources;
+}
+
 async function assessVendorCore(vendor,product){
   const taskId=makeTaskId();
   const {domain,results}=await scrape(vendor);
@@ -1476,7 +1528,11 @@ async function assessVendorCore(vendor,product){
     'status uptime SLA support terms breach outage acquisition leadership'
   ];
   const ctx=vectorContext(reviewQueries,5)||results.slice(0,8).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,2500)}`).join('\n\n---\n\n');
-  const logoUrl=await Promise.race([fetchLogo(vendor,domain),new Promise(r=>setTimeout(()=>r(null),3500))]);
+  // Run logo fetch + langextract in parallel (both non-blocking)
+  const [logoUrl,lxSources]=await Promise.all([
+    Promise.race([fetchLogo(vendor,domain),new Promise(r=>setTimeout(()=>r(null),3500))]),
+    runLangExtract(results).catch(()=>({}))
+  ]);
   let parsed,aiFallbackNote=null;
   if(gKey(curProv)){
     try{parsed=await runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,ctx);}
@@ -1485,15 +1541,24 @@ async function assessVendorCore(vendor,product){
     aiFallbackNote='No AI key — evidence-only.';
     parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);
   }
+  // Merge langextract grounded sources into _field_sources (fills gaps, doesn't overwrite AI sources)
+  if(lxSources&&Object.keys(lxSources).length){
+    parsed._field_sources=parsed._field_sources||{};
+    for(const[k,v]of Object.entries(lxSources)){
+      if(!parsed._field_sources[k])parsed._field_sources[k]=v;
+    }
+  }
   const removedUrls=scrubUnprovenDocUrls(parsed,allowedUrls);
+  const lxCount=Object.keys(lxSources||{}).length;
   parsed._meta={
     assessment_task_id:taskId,vendor_queried:vendor,product_service:product,domain,
     ai_provider:curProv,ai_model:curModel,
-    scraper_engine:'jina-ai-reader+browser-proxy-fallback',
+    scraper_engine:'vendorlens-local+jina-ai-reader+browser-proxy-fallback',
+    langextract_fields:lxCount,
     sources_scraped:srcs,source_urls_allowed:allowedUrls,vector_chunks:vectorStore.length,
     crawl_log:[...crawlLog],generated_at:new Date().toISOString(),freshness_checked_at:null,logo_url:logoUrl,
     verification_log:[
-      {ts:new Date().toISOString(),field:'assessment_task',oldVal:'',newVal:`Task ${taskId}`,sourceUrl:'',confidence:1,note:`Fetched ${results.length} pages, indexed ${vectorStore.length} chunks, ${allowedUrls.length} URLs confirmed reachable.`,changeType:'system'},
+      {ts:new Date().toISOString(),field:'assessment_task',oldVal:'',newVal:`Task ${taskId}`,sourceUrl:'',confidence:1,note:`Fetched ${results.length} pages, indexed ${vectorStore.length} chunks, ${allowedUrls.length} URLs confirmed reachable.${lxCount?` LangExtract grounded ${lxCount} fields.`:''}`,changeType:'system'},
       ...(aiFallbackNote?[{ts:new Date().toISOString(),field:'analysis_mode',oldVal:'AI enrichment',newVal:'Evidence-only',sourceUrl:'',confidence:1,note:aiFallbackNote,changeType:'system'}]:[]),
       ...removedUrls.map(r=>({ts:new Date().toISOString(),field:r.field,oldVal:r.url,newVal:'',sourceUrl:r.url,confidence:1,note:'Removed — not found in fetched pages.',changeType:'rejected'}))
     ]
