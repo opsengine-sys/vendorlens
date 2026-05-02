@@ -67,7 +67,24 @@ body{font-family:'DM Sans',sans-serif;background:#eef7f2;color:#091c11;min-heigh
 .pc{border:2px solid var(--e);border-radius:var(--rsm);padding:12px;cursor:pointer;transition:all .15s;position:relative}
 .pc:hover{border-color:var(--e2)}.pc.on{border-color:var(--g1);background:var(--gg)}
 .pc.on::after{content:'✓';position:absolute;top:7px;right:9px;font-size:10px;font-weight:700;color:var(--g1);font-family:'DM Mono',monospace}
-.pc-logo{font-size:17px;margin-bottom:4px}.pc-name{font-family:'Syne',sans-serif;font-weight:600;font-size:13px;margin-bottom:1px}.pc-sub{font-size:11px;color:var(--ink3)}
+.pc-logo{height:28px;width:28px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;border-radius:6px;overflow:hidden;background:var(--s2)}
+.pc-logo img{width:24px;height:24px;object-fit:contain;display:block}
+.pc-logo svg{width:22px;height:22px}
+.pc-name{font-family:'Syne',sans-serif;font-weight:600;font-size:13px;margin-bottom:1px}.pc-sub{font-size:11px;color:var(--ink3)}
+.prov-sep{font-size:9px;font-family:'DM Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);padding:10px 0 6px;display:flex;align-items:center;gap:8px}
+.prov-sep::after{content:'';flex:1;height:1px;background:var(--e)}
+.prov-sep.ent{color:#6366f1}.prov-sep.ent::after{background:#e0e7ff}
+/* ── Auth gate ── */
+.auth-gate{position:fixed;inset:0;background:var(--ink);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{background:var(--s);border-radius:var(--r);padding:36px 32px;max-width:380px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.4);animation:mslide .25s ease}
+.auth-logo{display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--ink3);margin-bottom:28px;line-height:1.55}
+.auth-label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;display:block}
+.auth-input{width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid var(--e);border-radius:var(--rsm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--s2);color:var(--ink);outline:none;transition:border-color .15s;margin-bottom:14px}
+.auth-input:focus{border-color:var(--g1)}
+.auth-btn{width:100%;padding:12px;background:var(--g1);color:#fff;border:none;border-radius:var(--rsm);font-family:'Syne',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+.auth-btn:hover{background:var(--g2)}
+.auth-err{font-size:12px;color:#dc2626;margin-bottom:10px;display:none;padding:8px 11px;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--rxs)}
 .mrow{display:flex;gap:8px;margin-bottom:10px;align-items:center}
 .mrow label{font-size:12px;font-weight:500;color:var(--ink2);white-space:nowrap}
 .mrow select,.mrow input,.krow input{background:var(--s2);border:1.5px solid var(--e);border-radius:var(--rxs);color:var(--ink);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;outline:none;transition:border-color .15s}
@@ -434,21 +451,66 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
   </div>
 </div>
 
+<!-- ── AUTH GATE ── -->
+<div class="auth-gate" id="authGate" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="tb-mark" style="width:32px;height:32px;border-radius:8px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/><path d="M8 11h6M11 8v6"/></svg></div>
+      VendorLens
+    </div>
+    <p class="auth-sub">Enterprise vendor intelligence — restricted access. Enter your password to continue.</p>
+    <label class="auth-label">Password</label>
+    <div class="auth-err" id="authErr">Incorrect password. Please try again.</div>
+    <input type="password" class="auth-input" id="authInput" placeholder="Enter password…" autocomplete="current-password"/>
+    <button class="auth-btn" id="authBtn" onclick="submitAuth()">Sign in</button>
+  </div>
+</div>
+
 <!-- ── AI MODAL ── -->
 <div class="mbg" id="mbg-ai" onclick="if(event.target===this)closeModal('ai')">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:580px">
     <div class="mh"><div class="mt">AI Provider</div><button class="mx" onclick="closeModal('ai')">✕</button></div>
     <div class="mb">
       <p class="mb-p">Select a provider and paste your API key. Keys are stored in your browser only — never sent to our servers.</p>
+
+      <div class="prov-sep">Standard Providers</div>
+      <div class="pgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:4px">
+        <div class="pc on" id="pc-groq"      onclick="selProv('groq')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=groq.com&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\' fill=\'none\'><text y=\'18\' font-size=\'16\' font-weight=\'700\' fill=\'currentColor\' font-family=\'sans-serif\'>G</text></svg>'" alt="Groq"/></div>
+          <div class="pc-name">Groq</div><div class="pc-sub">Free · Fast</div>
+        </div>
+        <div class="pc"    id="pc-gemini"    onclick="selProv('gemini')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\'><text y=\'18\' font-size=\'16\' font-weight=\'700\' fill=\'#4285f4\' font-family=\'sans-serif\'>G</text></svg>'" alt="Gemini"/></div>
+          <div class="pc-name">Gemini</div><div class="pc-sub">Free tier</div>
+        </div>
+        <div class="pc"    id="pc-openai"    onclick="selProv('openai')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=openai.com&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\'><circle cx=\'12\' cy=\'12\' r=\'9\' fill=\'#000\'/></svg>'" alt="OpenAI"/></div>
+          <div class="pc-name">OpenAI</div><div class="pc-sub">Paid</div>
+        </div>
+        <div class="pc"    id="pc-anthropic" onclick="selProv('anthropic')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=anthropic.com&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\'><text y=\'18\' font-size=\'16\' font-weight=\'700\' fill=\'#d97757\' font-family=\'sans-serif\'>A</text></svg>'" alt="Anthropic"/></div>
+          <div class="pc-name">Claude</div><div class="pc-sub">Paid</div>
+        </div>
+        <div class="pc"    id="pc-mistral"   onclick="selProv('mistral')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=mistral.ai&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\'><text y=\'18\' font-size=\'16\' font-weight=\'700\' fill=\'#f97316\' font-family=\'sans-serif\'>M</text></svg>'" alt="Mistral"/></div>
+          <div class="pc-name">Mistral</div><div class="pc-sub">Paid</div>
+        </div>
+        <div class="pc"    id="pc-together"  onclick="selProv('together')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=together.ai&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\'><text y=\'18\' font-size=\'16\' font-weight=\'700\' fill=\'#6366f1\' font-family=\'sans-serif\'>T</text></svg>'" alt="Together"/></div>
+          <div class="pc-name">Together</div><div class="pc-sub">PAYG</div>
+        </div>
+        <div class="pc"    id="pc-ollama"    onclick="selProv('ollama')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=ollama.com&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\'><text y=\'18\' font-size=\'16\' font-weight=\'700\' fill=\'#374151\' font-family=\'sans-serif\'>🦙</text></svg>'" alt="Ollama"/></div>
+          <div class="pc-name">Ollama</div><div class="pc-sub">Local</div>
+        </div>
+      </div>
+
+      <div class="prov-sep ent">Enterprise</div>
       <div class="pgrid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="pc on" id="pc-groq"      onclick="selProv('groq')"><div class="pc-logo">⚡</div><div class="pc-name">Groq</div><div class="pc-sub">Free · Fast</div></div>
-        <div class="pc"    id="pc-gemini"    onclick="selProv('gemini')"><div class="pc-logo">✦</div><div class="pc-name">Gemini</div><div class="pc-sub">Free tier</div></div>
-        <div class="pc"    id="pc-openai"    onclick="selProv('openai')"><div class="pc-logo">◆</div><div class="pc-name">OpenAI</div><div class="pc-sub">Paid</div></div>
-        <div class="pc"    id="pc-anthropic" onclick="selProv('anthropic')"><div class="pc-logo">◈</div><div class="pc-name">Claude</div><div class="pc-sub">Paid</div></div>
-        <div class="pc"    id="pc-azure"     onclick="selProv('azure')"><div class="pc-logo">☁</div><div class="pc-name">Azure</div><div class="pc-sub">Enterprise</div></div>
-        <div class="pc"    id="pc-mistral"   onclick="selProv('mistral')"><div class="pc-logo">〽</div><div class="pc-name">Mistral</div><div class="pc-sub">Paid</div></div>
-        <div class="pc"    id="pc-together"  onclick="selProv('together')"><div class="pc-logo">∞</div><div class="pc-name">Together</div><div class="pc-sub">PAYG</div></div>
-        <div class="pc"    id="pc-ollama"    onclick="selProv('ollama')"><div class="pc-logo">🦙</div><div class="pc-name">Ollama</div><div class="pc-sub">Local</div></div>
+        <div class="pc"    id="pc-azure"     onclick="selProv('azure')">
+          <div class="pc-logo"><img src="https://www.google.com/s2/favicons?domain=azure.microsoft.com&sz=32" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\'><text y=\'18\' font-size=\'16\' font-weight=\'700\' fill=\'#0078d4\' font-family=\'sans-serif\'>Az</text></svg>'" alt="Azure"/></div>
+          <div class="pc-name">Azure OpenAI</div><div class="pc-sub">Enterprise</div>
+        </div>
       </div>
 
       <!-- Azure-specific fields -->
@@ -1313,45 +1375,55 @@ document.addEventListener('click',e=>{if(!e.target.closest('.legend-wrap'))docum
 // SCRAPING
 // ═══════════════════════════════
 // CHECK_PROXIES: lightweight CORS proxies used only for URL availability checks.
-// Built-in server-side scraper first — no CORS, no rate limits, no external account needed.
 const CHECK_PROXIES=[
   u=>`/api/scrape?url=${encodeURIComponent(u)}`,
   u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
   u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
-  u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
 ];
-// SCRAPE_PROXIES: Built-in server-side scraper first (no external deps),
-// then Jina AI Reader for JS-rendered pages, then CORS proxies as fallback.
-const SCRAPE_PROXIES=[
-  u=>`/api/scrape?url=${encodeURIComponent(u)}`,
-  u=>`https://r.jina.ai/${u}`,
+// FALLBACK_PROXIES: used only when the parallel race fails
+const FALLBACK_PROXIES=[
   u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
   u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
   u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
 ];
-async function fetchProxy(url,pi=0,proxies=SCRAPE_PROXIES){
-  if(pi===0){
-    const ep=getScraperEndpoint(),type=getScraperType();
-    if(ep&&type&&type!=='unknown'&&type!==''){
-      try{return await fetchWithCustomScraper(url,ep,type);}
-      catch(e){}
-    }
+
+// Fetch via a single proxy URL, unwrap JSON wrappers from CORS proxies
+async function _fetchVia(proxyUrl, timeoutMs=16000){
+  const r=await fetch(proxyUrl,{signal:AbortSignal.timeout(timeoutMs)});
+  if(!r.ok)throw new Error('http_'+r.status);
+  const body=await r.text();
+  if(body.trimStart().startsWith('{')||body.trimStart().startsWith('[')){
+    try{
+      const d=JSON.parse(body);
+      if(d.status?.http_code&&d.status.http_code>=400)throw new Error('target_http_'+d.status.http_code);
+      const content=d.contents||d.data||'';
+      if(content)return content;
+    }catch(e){if(/^target_http_/.test(e.message))throw e;}
   }
-  if(pi>=proxies.length)throw new Error('proxy_fail');
+  return body||'';
+}
+
+async function fetchProxy(url){
+  // 1. Custom scraper (crawl4ai / ScrapeGraphAI) — highest quality
+  const ep=getScraperEndpoint(),type=getScraperType();
+  if(ep&&type&&type!=='unknown'){
+    try{return await fetchWithCustomScraper(url,ep,type);}catch(e){}
+  }
+  // 2. Race: server-side scraper (fresh UA, server IP) vs Jina AI Reader (JS-rendered)
+  //    Both attempt in parallel — take whichever returns meaningful content first.
+  const serverP = _fetchVia(`/api/scrape?url=${encodeURIComponent(url)}`,14000)
+    .then(t=>{if(!t||cleanHtml(t).length<80)throw new Error('empty');return t;});
+  const jinaP   = _fetchVia(`https://r.jina.ai/${url}`,16000)
+    .then(t=>{if(!t||t.length<80)throw new Error('empty');return t;});
   try{
-    const r=await fetch(proxies[pi](url),{signal:AbortSignal.timeout(15000)});
-    if(!r.ok)throw new Error('proxy_http_'+r.status);
-    const body=await r.text();
-    if(body.trimStart().startsWith('{')||body.trimStart().startsWith('[')){
-      try{
-        const d=JSON.parse(body);
-        if(d.status?.http_code&&d.status.http_code>=400)throw new Error('target_http_'+d.status.http_code);
-        return d.contents||d.data||body||'';
-      }catch(e){if(/^target_http_/.test(e.message))throw e;}
-    }
-    return body||'';
+    const result = await Promise.any([serverP, jinaP]);
+    return result;
+  }catch(e){}
+  // 3. CORS proxy fallbacks (sequential)
+  for(const mkP of FALLBACK_PROXIES){
+    try{return await _fetchVia(mkP(url),13000);}catch(e){}
   }
-  catch(e){return fetchProxy(url,pi+1,proxies);}
+  throw new Error('proxy_fail');
 }
 function looksLikeMissingPage(text){
   return /\b(404|page not found|not found|does not exist|we can't find|cannot be found)\b/i.test((text||'').slice(0,2000));
@@ -1372,7 +1444,7 @@ function cleanHtml(html){
     .replace(/&amp;/g,'&')
     .replace(/\s{3,}/g,'\n\n')
     .trim()
-    .slice(0,7000);
+    .slice(0,12000);
 }
 function absolutizeUrl(href,base){
   if(!href||/^(mailto:|tel:|javascript:|#)/i.test(href))return null;
@@ -1649,13 +1721,14 @@ async function scrape(vendor){
     }
   }
 
-  for(const pg of validPages){
+  // Fetch all valid priority pages in parallel for speed
+  await Promise.all(validPages.map(async pg=>{
     const chip=document.getElementById('ss-'+pg.id);
     try{
       const html=await fetchProxy(pg.url);
       const txt=cleanHtml(html);
       if(txt.length>150&&!looksLikeMissingPage(txt)){
-        results.push({src:pg.id,url:pg.url,txt,links:[...extractLinks(html,pg.url),...extractMarkdownLinks(html,pg.url)],verified:true,scraper:'jina'});
+        results.push({src:pg.id,url:pg.url,txt,links:[...extractLinks(html,pg.url),...extractMarkdownLinks(html,pg.url)],verified:true,scraper:'parallel'});
         logCrawl(pg.url,'scraped',txt.length);
         if(chip)chip.classList.add('done');
       }else{
@@ -1666,7 +1739,7 @@ async function scrape(vendor){
       logCrawl(pg.url,'fetch-error',0,e.message||String(e));
       if(chip)chip.classList.add('fail');
     }
-  }
+  }));
 
   const discovered=discoverRelevantLinks(results,domain);
   const discoveredItems=discovered.slice(0,25).map((l,i)=>({...l,chipId:'Link'+i}));
@@ -1684,14 +1757,14 @@ async function scrape(vendor){
     else{logCrawl(l.url,'discovered-404',0,check.note||`HTTP ${check.status}`);document.getElementById('ss-'+l.chipId)?.classList.add('fail');}
   }
 
-  for(const l of validDiscovered){
-    if(results.some(r=>r.url===l.url))continue;
+  await Promise.all(validDiscovered.map(async l=>{
+    if(results.some(r=>r.url===l.url))return;
     const chip=document.getElementById('ss-'+l.chipId);
     try{
       const html=await fetchProxy(l.url);
       const txt=cleanHtml(html);
       if(txt.length>150&&!looksLikeMissingPage(txt)){
-        results.push({src:l.text||'Discovered',url:l.url,txt,links:[...extractLinks(html,l.url),...extractMarkdownLinks(html,l.url)],foundOn:l.foundOn,verified:true,scraper:'jina'});
+        results.push({src:l.text||'Discovered',url:l.url,txt,links:[...extractLinks(html,l.url),...extractMarkdownLinks(html,l.url)],foundOn:l.foundOn,verified:true,scraper:'parallel'});
         logCrawl(l.url,'scraped-discovered',txt.length);
         if(chip)chip.classList.add('done');
       }else{
@@ -1702,7 +1775,7 @@ async function scrape(vendor){
       logCrawl(l.url,'discovered-error',0,e.message||String(e));
       if(chip)chip.classList.add('fail');
     }
-  }
+  }));
   logCrawl('(complete)','done',results.reduce((s,r)=>s+r.txt.length,0),`${results.length} pages indexed, ${vectorStore.length} chunks`);
   return{domain,results};
 }
@@ -3247,7 +3320,56 @@ function cells(id,items,sources={}){
 function bfmt(v){if(v===true)return 'Yes';if(v===false)return 'No';if(typeof v==='string'){if(/^yes$/i.test(v.trim()))return 'Yes';if(/^no$/i.test(v.trim()))return 'No';}return v;}
 function hlJSON(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{if(/^"/.test(m))return /:$/.test(m)?`<span class="jk">${m}</span>`:`<span class="js">${m}</span>`;if(/true|false/.test(m))return `<span class="jb">${m}</span>`;if(/null/.test(m))return `<span class="jnil">${m}</span>`;return `<span class="jn">${m}</span>`;});}
 function copyJSON(){if(!gData)return;navigator.clipboard.writeText(JSON.stringify(gData,null,2));document.querySelectorAll('.jcp,.cbtn').forEach(b=>{if(/copy/i.test(b.textContent)){const t=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=t,1800);}});}
+// ═══════════════════════════════
+// AUTH GATE
+// ═══════════════════════════════
+let _authToken = sessionStorage.getItem('vl_token') || '';
+
+async function initAuth(){
+  try{
+    const cfg = await fetch('/api/config',{signal:AbortSignal.timeout(4000)}).then(r=>r.json());
+    if(!cfg.authRequired){ document.getElementById('authGate').style.display='none'; return; }
+    if(_authToken){
+      // Validate existing token with a quick auth check
+      const ok = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_authToken}),signal:AbortSignal.timeout(4000)}).then(r=>r.json()).catch(()=>({ok:false}));
+      if(ok.ok){ document.getElementById('authGate').style.display='none'; return; }
+      sessionStorage.removeItem('vl_token'); _authToken='';
+    }
+    document.getElementById('authGate').style.display='flex';
+    document.getElementById('authInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+    document.getElementById('authInput').focus();
+  }catch(e){
+    // If server is unreachable or no auth endpoint, just let through
+    document.getElementById('authGate').style.display='none';
+  }
+}
+
+async function submitAuth(){
+  const pwd = document.getElementById('authInput').value;
+  const btn = document.getElementById('authBtn');
+  const err = document.getElementById('authErr');
+  btn.textContent='Checking…'; btn.disabled=true; err.style.display='none';
+  try{
+    const data = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pwd}),signal:AbortSignal.timeout(8000)}).then(r=>r.json());
+    if(data.ok){
+      _authToken = data.token||'ok';
+      sessionStorage.setItem('vl_token',_authToken);
+      document.getElementById('authGate').style.display='none';
+    } else {
+      err.textContent = data.error||'Incorrect password. Please try again.';
+      err.style.display='block';
+      document.getElementById('authInput').select();
+    }
+  }catch(e){
+    err.textContent='Connection error — check server.';
+    err.style.display='block';
+  }finally{
+    btn.textContent='Sign in'; btn.disabled=false;
+  }
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
+  initAuth();
   ['vInput','pInput'].forEach(id=>document.getElementById(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')run();}));
   let _scraperTimer;
   document.addEventListener('input',e=>{
