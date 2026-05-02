@@ -511,6 +511,56 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
   .auth-box{padding:28px 20px}
   .auth-logo{font-size:18px}
 }
+
+/* ─── CRAWL PROGRESS PANEL ─────────────────────── */
+.cpanel{background:var(--s);border:1px solid var(--e);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:14px;display:none}
+.cpanel.on{display:block;animation:mslide .2s ease}
+.cpanel-hdr{background:var(--s2);border-bottom:1px solid var(--e);padding:11px 16px;display:flex;align-items:center;gap:10px}
+.cpanel-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .3s}
+.cpanel-icon.crawl{background:var(--g1)}.cpanel-icon.ai{background:#6366f1}
+.cpanel-icon svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.cpanel-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:-.01em;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cpanel-phase{font-size:10px;font-family:'DM Mono',monospace;color:var(--ink4);white-space:nowrap}
+.cpanel-bar-row{padding:8px 16px 5px;display:flex;align-items:center;gap:10px}
+.cpanel-bar-bg{flex:1;height:4px;background:var(--e);border-radius:2px;overflow:hidden}
+.cpanel-bar-fill{height:100%;background:var(--g1);border-radius:2px;transition:width .5s ease}
+.cpanel-bar-fill.ai{background:#6366f1}
+.cpanel-stats{font-size:10px;font-family:'DM Mono',monospace;color:var(--ink4);white-space:nowrap;min-width:100px;text-align:right}
+/* Page rows */
+.cpanel-list{max-height:196px;overflow-y:auto;padding:3px 0 7px}
+.cpr{display:grid;grid-template-columns:18px minmax(0,1fr) 46px 46px;gap:0 8px;align-items:center;padding:3px 16px;transition:background .1s}
+.cpr:hover{background:var(--s2)}
+.cpr-icon{display:flex;align-items:center;justify-content:center;width:16px;height:16px}
+.cpr-spin{width:11px;height:11px;border:1.5px solid var(--e);border-top-color:var(--g1);border-radius:50%;animation:spin .7s linear infinite}
+.cpr-done{font-size:12px;color:var(--g1);font-weight:700;line-height:1}
+.cpr-fail{font-size:14px;color:var(--ink4);line-height:1;margin-top:-1px}
+.cpr-idle{width:5px;height:5px;border-radius:50%;background:var(--e)}
+.cpr-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cpr-name.idle{color:var(--ink4)}
+.cpr-src{font-size:9px;font-family:'DM Mono',monospace;border-radius:3px;padding:1px 5px;border:1px solid transparent;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cpr-src.server{color:#0369a1;border-color:#bae6fd;background:#f0f9ff}
+.cpr-src.jina{color:#7c3aed;border-color:#ddd6fe;background:#f5f3ff}
+.cpr-src.cors{color:#d97706;border-color:#fde68a;background:#fffbeb}
+.cpr-src.custom{color:#15803d;border-color:#bbf7d0;background:#f0fdf4}
+.cpr-src.fail{color:var(--ink4);border-color:var(--e);background:var(--s2)}
+.cpr-chars{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink4);text-align:right;white-space:nowrap}
+/* Agent cards */
+.cpanel-agents{border-top:1px solid var(--e);padding:9px 16px 11px}
+.cpanel-agents-lbl{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin-bottom:7px}
+.cagents{display:flex;gap:6px;flex-wrap:wrap}
+.cag{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--e);border-radius:var(--rxs);padding:5px 11px;transition:all .25s}
+.cag.running{border-color:rgba(99,102,241,.35);background:rgba(99,102,241,.06)}
+.cag.done{border-color:rgba(21,163,74,.35);background:var(--gg)}
+.cag-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .25s}
+.cag-dot.idle{background:var(--e)}
+.cag-dot.running{background:#818cf8;animation:blink 1s infinite}
+.cag-dot.done{background:var(--g1)}
+.cag-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink4);transition:color .25s}
+.cag.running .cag-lbl{color:#6366f1}.cag.done .cag-lbl{color:var(--ink2)}
+/* Separator row for discovered links */
+.cpr-sep{padding:5px 16px 2px;font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);display:flex;align-items:center;gap:8px}
+.cpr-sep::after{content:'';flex:1;height:1px;background:var(--e)}
+@media(max-width:640px){.cpanel-list{max-height:150px}.cpr{grid-template-columns:18px minmax(0,1fr) 40px 36px}}
 </style>
 </head>
 <body>
@@ -713,6 +763,26 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/></svg>
     <span id="btnLbl">Run Full Vendor Assessment</span>
   </button>
+
+  <!-- ── CRAWL PROGRESS PANEL ── -->
+  <div class="cpanel" id="cpanel">
+    <div class="cpanel-hdr">
+      <div class="cpanel-icon crawl" id="cpanelIcon">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/></svg>
+      </div>
+      <div class="cpanel-title" id="cpanelTitle">Crawling…</div>
+      <div class="cpanel-phase" id="cpanelPhase">Phase 1 of 2</div>
+    </div>
+    <div class="cpanel-bar-row">
+      <div class="cpanel-bar-bg"><div class="cpanel-bar-fill" id="cpanelBarFill" style="width:0%"></div></div>
+      <div class="cpanel-stats" id="cpanelStats">0 pages</div>
+    </div>
+    <div class="cpanel-list" id="cpanelList"></div>
+    <div class="cpanel-agents" id="cpanelAgents" style="display:none">
+      <div class="cpanel-agents-lbl">AI Agents</div>
+      <div class="cagents" id="cagentsRow"></div>
+    </div>
+  </div>
 
   <div class="sbar" id="sbar"><div class="spin"></div><span class="smsg" id="smsgbar">Starting…</span><div class="pips"><div class="pip" id="p0"></div><div class="pip" id="p1"></div><div class="pip" id="p2"></div><div class="pip" id="p3"></div><div class="pip" id="p4"></div><div class="pip" id="p5"></div></div></div>
   <div class="token-warn" id="tokenWarn" style="display:none">
@@ -1451,6 +1521,129 @@ function toggleLegend(){document.getElementById('legendCard').classList.toggle('
 document.addEventListener('click',e=>{if(!e.target.closest('.legend-wrap'))document.getElementById('legendCard')?.classList.remove('on');});
 
 // ═══════════════════════════════
+// CRAWL PROGRESS PANEL
+// ═══════════════════════════════
+const CrawlPanel = {
+  _done: 0, _total: 0, _chars: 0, _phase: 1,
+
+  show(domain, pages) {
+    this._done = 0; this._total = pages.length; this._chars = 0; this._phase = 1;
+    document.getElementById('cpanelIcon').className = 'cpanel-icon crawl';
+    document.getElementById('cpanelIcon').innerHTML = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/></svg>';
+    document.getElementById('cpanelTitle').textContent = 'Crawling ' + domain;
+    document.getElementById('cpanelPhase').textContent = 'Phase 1 of 2 — fetching pages';
+    document.getElementById('cpanelBarFill').className = 'cpanel-bar-fill';
+    document.getElementById('cpanelBarFill').style.width = '0%';
+    document.getElementById('cpanelStats').textContent = '0 / ' + pages.length + ' pages';
+    document.getElementById('cpanelAgents').style.display = 'none';
+    const list = document.getElementById('cpanelList');
+    list.style.display = '';
+    list.innerHTML = '';
+    pages.forEach(p => list.appendChild(this._makeRow(p.id, p.id)));
+    document.getElementById('cpanel').classList.add('on');
+  },
+
+  addDiscovered(items) {
+    if (!items.length) return;
+    const list = document.getElementById('cpanelList');
+    const sep = document.createElement('div');
+    sep.className = 'cpr-sep';
+    sep.textContent = 'Discovered links';
+    list.appendChild(sep);
+    items.forEach(l => {
+      if (!document.getElementById('cpr-' + l.chipId)) {
+        list.appendChild(this._makeRow(l.chipId, l.text || l.chipId));
+      }
+    });
+    this._total += items.length;
+    this._refreshBar();
+  },
+
+  _makeRow(id, label) {
+    const row = document.createElement('div');
+    row.className = 'cpr'; row.id = 'cpr-' + id;
+    row.innerHTML = `<div class="cpr-icon"><div class="cpr-idle"></div></div><div class="cpr-name idle">${label}</div><div class="cpr-src"></div><div class="cpr-chars"></div>`;
+    return row;
+  },
+
+  setFetching(id) {
+    const row = document.getElementById('cpr-' + id); if (!row) return;
+    row.querySelector('.cpr-icon').innerHTML = '<div class="cpr-spin"></div>';
+    row.querySelector('.cpr-name').classList.remove('idle');
+    row.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  },
+
+  setDone(id, src, chars) {
+    const row = document.getElementById('cpr-' + id); if (!row) return;
+    row.querySelector('.cpr-icon').innerHTML = '<div class="cpr-done">✓</div>';
+    const srcEl = row.querySelector('.cpr-src');
+    srcEl.textContent = src; srcEl.className = 'cpr-src ' + src;
+    row.querySelector('.cpr-chars').textContent = chars >= 1000 ? (chars/1000).toFixed(1) + 'k' : chars + '';
+    this._done++; this._chars += chars; this._refreshBar();
+  },
+
+  setFail(id, note) {
+    const row = document.getElementById('cpr-' + id); if (!row) return;
+    row.querySelector('.cpr-icon').innerHTML = '<div class="cpr-fail">–</div>';
+    const srcEl = row.querySelector('.cpr-src');
+    srcEl.textContent = note || '—'; srcEl.className = 'cpr-src fail';
+    row.querySelector('.cpr-name').classList.add('idle');
+    this._done++; this._refreshBar();
+  },
+
+  _refreshBar() {
+    const pct = this._total ? Math.round(this._done / this._total * 100) : 0;
+    document.getElementById('cpanelBarFill').style.width = pct + '%';
+    const chStr = this._chars >= 1000 ? (this._chars / 1000).toFixed(0) + 'k chars' : this._chars + ' chars';
+    document.getElementById('cpanelStats').textContent = this._done + ' / ' + this._total + ' · ' + chStr;
+  },
+
+  showAgents() {
+    this._phase = 2;
+    document.getElementById('cpanelIcon').className = 'cpanel-icon ai';
+    document.getElementById('cpanelIcon').innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>';
+    document.getElementById('cpanelTitle').textContent = document.getElementById('cpanelTitle').textContent.replace('Crawling', 'Analyzing');
+    document.getElementById('cpanelPhase').textContent = 'Phase 2 of 2 — AI analysis';
+    document.getElementById('cpanelBarFill').className = 'cpanel-bar-fill ai';
+    document.getElementById('cpanelBarFill').style.width = '0%';
+    document.getElementById('cpanelStats').textContent = '0 / 5 agents';
+    document.getElementById('cpanelList').style.display = 'none';
+    const agentsEl = document.getElementById('cpanelAgents');
+    agentsEl.style.display = 'block';
+    const row = document.getElementById('cagentsRow');
+    row.innerHTML = '';
+    ['Compliance','Security','Privacy','Legal','Synthesis'].forEach(name => {
+      const el = document.createElement('div');
+      el.className = 'cag'; el.id = 'cag-' + name.toLowerCase();
+      el.innerHTML = `<div class="cag-dot idle"></div><div class="cag-lbl">${name}</div>`;
+      row.appendChild(el);
+    });
+  },
+
+  _agentsDone: 0,
+  setAgent(name, status) {
+    const el = document.getElementById('cag-' + name.toLowerCase()); if (!el) return;
+    el.className = 'cag ' + status;
+    el.querySelector('.cag-dot').className = 'cag-dot ' + status;
+    if (status === 'done') {
+      this._agentsDone++;
+      const pct = Math.round(this._agentsDone / 5 * 100);
+      document.getElementById('cpanelBarFill').style.width = pct + '%';
+      document.getElementById('cpanelStats').textContent = this._agentsDone + ' / 5 agents done';
+    }
+  },
+
+  hide() {
+    document.getElementById('cpanel').classList.remove('on');
+    document.getElementById('cpanelList').style.display = '';
+    this._agentsDone = 0;
+  }
+};
+
+// Track which source won for each URL (set inside fetchProxy, read by scrape())
+const _lastFetchSrc = {};
+
+// ═══════════════════════════════
 // SCRAPING
 // ═══════════════════════════════
 // CHECK_PROXIES: lightweight CORS proxies used only for URL availability checks.
@@ -1503,20 +1696,21 @@ async function fetchProxy(url){
 
   // Prefer whichever returned meaningfully more content
   if(serverClean.length>=500&&!looksLikeMissingPage(serverClean)){
-    // Server looks great — use it (Jina might still be better for markdown quality)
-    if(jinaClean.length>serverClean.length+200&&!looksLikeMissingPage(jinaClean)) return jinaTxt;
-    return serverTxt;
+    if(jinaClean.length>serverClean.length+200&&!looksLikeMissingPage(jinaClean)){
+      _lastFetchSrc[url]='jina'; return jinaTxt;
+    }
+    _lastFetchSrc[url]='server'; return serverTxt;
   }
-  if(jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)) return jinaTxt;
-  if(serverClean.length>=150&&!looksLikeMissingPage(serverClean)) return serverTxt;
-  if(jinaClean.length>=150&&!looksLikeMissingPage(jinaClean)) return jinaTxt;
+  if(jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)){_lastFetchSrc[url]='jina';return jinaTxt;}
+  if(serverClean.length>=150&&!looksLikeMissingPage(serverClean)){_lastFetchSrc[url]='server';return serverTxt;}
+  if(jinaClean.length>=150&&!looksLikeMissingPage(jinaClean)){_lastFetchSrc[url]='jina';return jinaTxt;}
 
   // 3. CORS proxy fallbacks
   for(const mkP of FALLBACK_PROXIES){
     try{
       const raw=await _fetchVia(mkP(url),13000);
       const clean=cleanHtml(raw);
-      if(clean.length>=120&&!looksLikeMissingPage(clean)) return raw;
+      if(clean.length>=120&&!looksLikeMissingPage(clean)){_lastFetchSrc[url]='cors';return raw;}
     }catch(e){}
   }
   throw new Error('proxy_fail');
@@ -1782,23 +1976,28 @@ async function scrape(vendor){
   // Single-phase: fetch all priority pages in parallel — server+Jina run concurrently
   // inside fetchProxy, so no separate head-check round is needed.
   logCrawl('(start)','init',0,`Fetching ${priorityPages.length} candidate URLs for ${domain} in parallel`);
+  CrawlPanel.show(domain, priorityPages);
   await Promise.all(priorityPages.map(async pg=>{
     const chip=document.getElementById('ss-'+pg.id);
+    CrawlPanel.setFetching(pg.id);
     try{
       const html=await fetchProxy(pg.url);
+      const src=_lastFetchSrc[pg.url]||'server';
       const txt=cleanHtml(html);
       if(txt.length>150&&!looksLikeMissingPage(txt)){
-        results.push({src:pg.id,url:pg.url,txt,links:[...extractLinks(html,pg.url),...extractMarkdownLinks(html,pg.url)],verified:true,scraper:'parallel'});
+        results.push({src:pg.id,url:pg.url,txt,links:[...extractLinks(html,pg.url),...extractMarkdownLinks(html,pg.url)],verified:true,scraper:src});
         logCrawl(pg.url,'scraped',txt.length);
-        if(chip){chip.classList.add('done');chip.title=`${txt.length} chars`;}
+        if(chip){chip.classList.add('done');chip.title=`${txt.length} chars (${src})`;}
+        CrawlPanel.setDone(pg.id, src, txt.length);
       }else{
         logCrawl(pg.url,'empty-content',txt.length,'content too short or 404-like');
         if(chip)chip.classList.add('fail');
+        CrawlPanel.setFail(pg.id, 'empty');
       }
     }catch(e){
-      // 404 / not found — not an error, just not available for this vendor
       if(!/proxy_fail|http_40[34]/.test(e.message)) logCrawl(pg.url,'fetch-error',0,e.message||String(e));
       if(chip)chip.classList.add('fail');
+      CrawlPanel.setFail(pg.id, '404');
     }
   }));
   logCrawl('(priority)','done',0,`${results.length}/${priorityPages.length} pages yielded content`);
@@ -1811,24 +2010,30 @@ async function scrape(vendor){
   });
   const discoveredToFetch=discoveredItems.filter(l=>!results.some(r=>r.url===l.url));
 
-  // Fetch all discovered links in parallel — same single-phase approach as priority pages
+  // Register discovered links in the progress panel, then fetch in parallel
+  CrawlPanel.addDiscovered(discoveredToFetch);
   await Promise.all(discoveredToFetch.map(async l=>{
     if(results.some(r=>r.url===l.url))return;
     const chip=document.getElementById('ss-'+l.chipId);
+    CrawlPanel.setFetching(l.chipId);
     try{
       const html=await fetchProxy(l.url);
+      const src=_lastFetchSrc[l.url]||'server';
       const txt=cleanHtml(html);
       if(txt.length>150&&!looksLikeMissingPage(txt)){
-        results.push({src:l.text||'Discovered',url:l.url,txt,links:[...extractLinks(html,l.url),...extractMarkdownLinks(html,l.url)],foundOn:l.foundOn,verified:true,scraper:'parallel'});
+        results.push({src:l.text||'Discovered',url:l.url,txt,links:[...extractLinks(html,l.url),...extractMarkdownLinks(html,l.url)],foundOn:l.foundOn,verified:true,scraper:src});
         logCrawl(l.url,'scraped-discovered',txt.length);
-        if(chip){chip.classList.add('done');chip.title=`${txt.length} chars`;}
+        if(chip){chip.classList.add('done');chip.title=`${txt.length} chars (${src})`;}
+        CrawlPanel.setDone(l.chipId, src, txt.length);
       }else{
         logCrawl(l.url,'discovered-empty',txt.length);
         if(chip)chip.classList.add('fail');
+        CrawlPanel.setFail(l.chipId, 'empty');
       }
     }catch(e){
       if(!/proxy_fail|http_40[34]/.test(e.message)) logCrawl(l.url,'discovered-error',0,e.message||String(e));
       if(chip)chip.classList.add('fail');
+      CrawlPanel.setFail(l.chipId, '404');
     }
   }));
   logCrawl('(complete)','done',results.reduce((s,r)=>s+r.txt.length,0),`${results.length} pages indexed, ${vectorStore.length} chunks`);
@@ -2151,12 +2356,17 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
   showTokenWarn(budgetInfo);
 
   document.getElementById('smsgbar').textContent='Running 5 parallel analysis agents…';
+  CrawlPanel.showAgents();
+  const wrapAgent=(name,p)=>{
+    CrawlPanel.setAgent(name,'running');
+    return p.then(r=>{CrawlPanel.setAgent(name,'done');return r;}).catch(e=>{CrawlPanel.setAgent(name,'done');throw e;});
+  };
   const [complianceR,securityR,privacyR,legalR,synthR]=await Promise.allSettled([
-    callDomainAgent('compliance',vendor,product,domain,compCtx,allowedUrls,2800),
-    callDomainAgent('security',vendor,product,domain,secCtx,allowedUrls,2800),
-    callDomainAgent('privacy',vendor,product,domain,privCtx,allowedUrls,2800),
-    callDomainAgent('legal',vendor,product,domain,legalCtx,allowedUrls,2800),
-    callDomainAgent('synthesis',vendor,product,domain,synthCtx,allowedUrls,3500)
+    wrapAgent('compliance', callDomainAgent('compliance',vendor,product,domain,compCtx,allowedUrls,2800)),
+    wrapAgent('security',   callDomainAgent('security',vendor,product,domain,secCtx,allowedUrls,2800)),
+    wrapAgent('privacy',    callDomainAgent('privacy',vendor,product,domain,privCtx,allowedUrls,2800)),
+    wrapAgent('legal',      callDomainAgent('legal',vendor,product,domain,legalCtx,allowedUrls,2800)),
+    wrapAgent('synthesis',  callDomainAgent('synthesis',vendor,product,domain,synthCtx,allowedUrls,3500))
   ]);
   hideTokenWarn();
   document.getElementById('smsgbar').textContent='Merging agent results…';
@@ -2330,12 +2540,14 @@ async function runCompare(){
     gDataB=parsedB; gLogoBUrl=logoB;
     for(let i=0;i<=5;i++)pip(i,'done');
     document.getElementById('sbn').classList.remove('on');
+    CrawlPanel.hide();
     renderComparison(parsedA,parsedB);
     document.getElementById('compareResults').style.display='block';
     document.getElementById('res').classList.remove('on');
     document.getElementById('emptyState').style.display='none';
   }catch(err){
     if(ticker)clearInterval(ticker);
+    CrawlPanel.hide();
     showScrapeError(err.message, document.getElementById('vInput').value.trim()||document.getElementById('v2Input').value.trim());
     cBtn.disabled=false; cLbl.textContent='Compare Both Vendors';
     return;
@@ -2713,6 +2925,7 @@ async function run(){
     clearInterval(ticker); for(let i=0;i<=5;i++)pip(i,'done');
     gData=parsed; gLogoUrl=logoUrl;
     document.getElementById('sbn').classList.remove('on');
+    CrawlPanel.hide();
     await render(parsed);
     document.getElementById('res').classList.add('on');
     document.getElementById('compareResults').style.display='none';
@@ -2720,6 +2933,7 @@ async function run(){
     computeFreshness(parsed);
   }catch(err){
     if(ticker)clearInterval(ticker);
+    CrawlPanel.hide();
     showScrapeError(err.message, document.getElementById('vInput').value.trim());
     return;
   }
