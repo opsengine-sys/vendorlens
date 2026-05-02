@@ -711,6 +711,41 @@ function updateTopbar(){
   document.getElementById('provDot').className='tb-dot '+(k?'ok':'no');
   document.getElementById('provLabel').textContent=k?`${PROVS[curProv].name} · ${curModel}`:'Configure AI Provider';
 }
+
+function showScrapeError(msg,vendor){
+  busy(false);
+  document.getElementById('sbn').classList.remove('on');
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('res').classList.remove('on');
+  const el=document.getElementById('compareResults');
+  el.style.display='block';
+  const domain=vendor?inferDomain(vendor):'';
+  el.innerHTML=`
+  <div style="background:var(--s);border:1.5px solid #fca5a5;border-radius:var(--r);padding:28px 24px;box-shadow:var(--sh)">
+    <div style="display:flex;align-items:flex-start;gap:16px">
+      <div style="font-size:32px;flex-shrink:0;line-height:1;margin-top:2px">⚠️</div>
+      <div style="flex:1">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#dc2626;margin-bottom:6px;letter-spacing:-.02em">Assessment failed</div>
+        <div style="font-size:13px;color:var(--ink2);margin-bottom:14px;line-height:1.6;font-family:'DM Mono',monospace;background:var(--s2);padding:10px 12px;border-radius:var(--rxs);border:1px solid var(--e)">${msg}</div>
+        <div style="font-size:13px;color:var(--ink2);margin-bottom:10px;font-weight:600">Try these fixes:</div>
+        <ul style="margin:0 0 14px 18px;font-size:13px;color:var(--ink3);line-height:2">
+          ${domain?`<li>Enter the full domain directly: <code style="font-family:'DM Mono',monospace;font-size:11px;background:var(--s2);padding:1px 6px;border-radius:3px;border:1px solid var(--e)">${domain}</code></li>`:''}
+          <li>Try a different TLD — e.g. <code style="font-family:'DM Mono',monospace;font-size:11px;background:var(--s2);padding:1px 6px;border-radius:3px;border:1px solid var(--e)">${domain?domain.replace('.com','.io'):vendor+'.io'}</code> or include <code style="font-family:'DM Mono',monospace;font-size:11px;background:var(--s2);padding:1px 6px;border-radius:3px;border:1px solid var(--e)">www.</code></li>
+          <li>The CORS proxy or Jina AI may be temporarily rate-limited — wait 30 seconds and try again</li>
+          <li>Very small or private companies may have no public compliance data online</li>
+          <li>Check that your AI API key is still valid in <strong>Configure AI Provider</strong></li>
+        </ul>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="rbtn" style="padding:10px 20px;font-size:13px;width:auto" onclick="document.getElementById('compareResults').style.display='none';document.getElementById('emptyState').style.display='none';document.getElementById('vInput').focus()">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/></svg>
+            Try again
+          </button>
+          <button class="cbtn" onclick="document.getElementById('compareResults').style.display='none'">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
 updateTopbar();
 function toggleLegend(){document.getElementById('legendCard').classList.toggle('on');}
 document.addEventListener('click',e=>{if(!e.target.closest('.legend-wrap'))document.getElementById('legendCard')?.classList.remove('on');});
@@ -718,33 +753,37 @@ document.addEventListener('click',e=>{if(!e.target.closest('.legend-wrap'))docum
 // ═══════════════════════════════
 // SCRAPING
 // ═══════════════════════════════
-// Proxy chain: Jina AI Reader first (returns clean markdown — no parsing needed),
-// then browser CORS proxies as fallback.
-const PROXIES=[
+// CHECK_PROXIES: lightweight CORS proxies used only for URL availability checks.
+// No Jina here — Jina is too slow (5-15s) for parallel head-checking 17 URLs at once.
+const CHECK_PROXIES=[
+  u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+];
+// SCRAPE_PROXIES: Jina AI Reader first for high-quality clean markdown,
+// then CORS proxies as fallback.
+const SCRAPE_PROXIES=[
   u=>`https://r.jina.ai/${u}`,
   u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
   u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
   u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
 ];
-async function fetchProxy(url,pi=0){
-  if(pi>=PROXIES.length)throw new Error('proxy_fail');
+async function fetchProxy(url,pi=0,proxies=SCRAPE_PROXIES){
+  if(pi>=proxies.length)throw new Error('proxy_fail');
   try{
-    const r=await fetch(PROXIES[pi](url),{signal:AbortSignal.timeout(12000)});
+    const r=await fetch(proxies[pi](url),{signal:AbortSignal.timeout(15000)});
     if(!r.ok)throw new Error('proxy_http_'+r.status);
     const body=await r.text();
-    // Jina returns plain text/markdown — detect by checking if it starts with JSON
     if(body.trimStart().startsWith('{')||body.trimStart().startsWith('[')){
       try{
         const d=JSON.parse(body);
         if(d.status?.http_code&&d.status.http_code>=400)throw new Error('target_http_'+d.status.http_code);
         return d.contents||d.data||body||'';
-      }catch(e){
-        if(/^target_http_/.test(e.message))throw e;
-      }
+      }catch(e){if(/^target_http_/.test(e.message))throw e;}
     }
     return body||'';
   }
-  catch(e){return fetchProxy(url,pi+1);}
+  catch(e){return fetchProxy(url,pi+1,proxies);}
 }
 function looksLikeMissingPage(text){
   return /\b(404|page not found|not found|does not exist|we can't find|cannot be found)\b/i.test((text||'').slice(0,2000));
@@ -954,16 +993,17 @@ function logCrawl(url,status,chars,note=''){
 }
 
 async function headCheck(url){
-  for(const mkProxy of PROXIES){
+  // Use CHECK_PROXIES only (no Jina) — fast CORS proxies for availability validation
+  for(const mkProxy of CHECK_PROXIES){
     try{
-      const r=await fetch(mkProxy(url),{signal:AbortSignal.timeout(7000)});
+      const r=await fetch(mkProxy(url),{signal:AbortSignal.timeout(8000)});
       if(!r.ok)return{ok:false,status:r.status};
       const body=await r.text();
       let text=body;
       try{const d=JSON.parse(body);text=d.contents||d.data||body;}catch(e){}
       const clean=cleanHtml(text);
       if(looksLikeMissingPage(clean)||clean.length<120)return{ok:false,status:404,note:'looks like 404 or empty'};
-      return{ok:true,status:200,chars:clean.length,html:text};
+      return{ok:true,status:200,chars:clean.length};
     }catch(e){}
   }
   return{ok:false,status:0,note:'all proxies failed'};
@@ -1036,7 +1076,7 @@ async function scrape(vendor){
   for(const pg of validPages){
     const chip=document.getElementById('ss-'+pg.id);
     try{
-      const html=pg._preHtml||await fetchProxy(pg.url);
+      const html=await fetchProxy(pg.url);
       const txt=cleanHtml(html);
       if(txt.length>150&&!looksLikeMissingPage(txt)){
         results.push({src:pg.id,url:pg.url,txt,links:[...extractLinks(html,pg.url),...extractMarkdownLinks(html,pg.url)],verified:true,scraper:'jina'});
@@ -1072,7 +1112,7 @@ async function scrape(vendor){
     if(results.some(r=>r.url===l.url))continue;
     const chip=document.getElementById('ss-'+l.chipId);
     try{
-      const html=l._preHtml||await fetchProxy(l.url);
+      const html=await fetchProxy(l.url);
       const txt=cleanHtml(html);
       if(txt.length>150&&!looksLikeMissingPage(txt)){
         results.push({src:l.text||'Discovered',url:l.url,txt,links:[...extractLinks(html,l.url),...extractMarkdownLinks(html,l.url)],foundOn:l.foundOn,verified:true,scraper:'jina'});
@@ -1359,9 +1399,7 @@ async function runCompare(){
     document.getElementById('emptyState').style.display='none';
   }catch(err){
     if(ticker)clearInterval(ticker);
-    document.getElementById('sbn').classList.remove('on');
-    document.getElementById('smsgbar').textContent='⚠ '+err.message;
-    setTimeout(()=>busy(false,true),4000);
+    showScrapeError(err.message, document.getElementById('vInput').value.trim()||document.getElementById('v2Input').value.trim());
     cBtn.disabled=false; cLbl.textContent='Compare Both Vendors';
     return;
   }
@@ -1745,9 +1783,8 @@ async function run(){
     computeFreshness(parsed);
   }catch(err){
     if(ticker)clearInterval(ticker);
-    document.getElementById('sbn').classList.remove('on');
-    document.getElementById('smsgbar').textContent='⚠ '+err.message;
-    setTimeout(()=>busy(false,true),4000); return;
+    showScrapeError(err.message, document.getElementById('vInput').value.trim());
+    return;
   }
   busy(false);
 }
