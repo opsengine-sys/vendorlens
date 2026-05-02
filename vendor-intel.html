@@ -127,6 +127,12 @@ body{font-family:'DM Sans',sans-serif;background:#eef7f2;color:#091c11;min-heigh
 /* ── STATUS ── */
 .sbar{display:none;align-items:center;gap:12px;background:var(--s);border:1px solid var(--e);border-radius:var(--rsm);padding:12px 18px;margin-bottom:14px}
 .sbar.on{display:flex}
+.token-warn{display:flex;align-items:center;gap:8px;background:#fffbeb;border:1px solid #f59e0b;border-radius:var(--rsm);padding:9px 14px;margin-bottom:12px;font-size:12.5px;color:#92400e;flex-wrap:wrap}
+.token-warn svg{flex-shrink:0;color:#d97706}
+.tw-switch{background:#d97706;color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:12px;cursor:pointer;white-space:nowrap;margin-left:4px}
+.tw-switch:hover{background:#b45309}
+.tw-dismiss{margin-left:auto;background:none;border:none;cursor:pointer;color:#92400e;font-size:14px;padding:0 2px;line-height:1;opacity:.7}
+.tw-dismiss:hover{opacity:1}
 .spin{width:14px;height:14px;border:2px solid var(--e);border-top-color:var(--g1);border-radius:50%;animation:spin .75s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 .smsg{font-size:13px;color:var(--ink2)}
@@ -492,6 +498,12 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
   </button>
 
   <div class="sbar" id="sbar"><div class="spin"></div><span class="smsg" id="smsgbar">Starting…</span><div class="pips"><div class="pip" id="p0"></div><div class="pip" id="p1"></div><div class="pip" id="p2"></div><div class="pip" id="p3"></div><div class="pip" id="p4"></div><div class="pip" id="p5"></div></div></div>
+  <div class="token-warn" id="tokenWarn" style="display:none">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span id="tokenWarnMsg"></span>
+    <button class="tw-switch" id="tokenWarnSwitch" onclick="switchToGemini()" style="display:none">Switch to Gemini Flash</button>
+    <button class="tw-dismiss" onclick="document.getElementById('tokenWarn').style.display='none'">✕</button>
+  </div>
 
   <!-- RESULTS -->
   <div class="res" id="res">
@@ -701,10 +713,11 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
 // PROVIDERS
 // ═══════════════════════════════
 const PROVS = {
-  groq:     { name:'Groq',      ep:'https://api.groq.com/openai/v1/chat/completions', models:['llama-3.3-70b-versatile','llama-3.1-70b-versatile','mixtral-8x7b-32768'], def:'llama-3.3-70b-versatile', fmt:'openai', note:'Free tier. Key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>' },
-  gemini:   { name:'Gemini',    ep:'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent', models:['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-pro'], def:'gemini-2.0-flash', fmt:'gemini', note:'Free tier. Key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>' },
-  openai:   { name:'OpenAI',    ep:'https://api.openai.com/v1/chat/completions', models:['gpt-4o','gpt-4o-mini','gpt-4-turbo'], def:'gpt-4o-mini', fmt:'openai', note:'Paid. Key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>' },
-  anthropic:{ name:'Anthropic', ep:'https://api.anthropic.com/v1/messages', models:['claude-sonnet-4-5','claude-haiku-4-5-20251001'], def:'claude-sonnet-4-5', fmt:'anthropic', note:'Paid. Key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>' }
+  groq:     { name:'Groq',      ep:'https://api.groq.com/openai/v1/chat/completions', models:['llama-3.3-70b-versatile','llama-3.1-70b-versatile','mixtral-8x7b-32768'], def:'llama-3.3-70b-versatile', fmt:'openai', note:'Free tier. Key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>',
+    tpmPerModel:{'llama-3.3-70b-versatile':6000,'llama-3.1-70b-versatile':6000,'mixtral-8x7b-32768':5000} },
+  gemini:   { name:'Gemini',    ep:'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent', models:['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-pro'], def:'gemini-2.0-flash', fmt:'gemini', note:'Free tier. Key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>', tpmPerModel:null },
+  openai:   { name:'OpenAI',    ep:'https://api.openai.com/v1/chat/completions', models:['gpt-4o','gpt-4o-mini','gpt-4-turbo'], def:'gpt-4o-mini', fmt:'openai', note:'Paid. Key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a>', tpmPerModel:null },
+  anthropic:{ name:'Anthropic', ep:'https://api.anthropic.com/v1/messages', models:['claude-sonnet-4-5','claude-haiku-4-5-20251001'], def:'claude-sonnet-4-5', fmt:'anthropic', note:'Paid. Key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>', tpmPerModel:null }
 };
 let curProv  = localStorage.getItem('vl_p')  || 'groq';
 let curModel = localStorage.getItem('vl_m')  || PROVS.groq.def;
@@ -1290,6 +1303,56 @@ async function scrape(vendor){
 // ═══════════════════════════════
 // AI CALL
 // ═══════════════════════════════
+// ═══════════════════════════════
+// TOKEN BUDGET ESTIMATOR
+// ═══════════════════════════════
+function estimateTok(str){ return Math.ceil((str||'').length/4); }
+
+function getModelTpm(){
+  const limits=PROVS[curProv]?.tpmPerModel;
+  if(!limits)return Infinity;
+  return limits[curModel]||Infinity;
+}
+
+// agentCtxs = array of {ctx, maxTok} for each agent call
+function checkTokenBudget(agentCtxs){
+  const tpm=getModelTpm();
+  if(tpm===Infinity)return null;
+  // Each agent: base prompt overhead ~800 tokens + context tokens + max output tokens
+  const total=agentCtxs.reduce((sum,{ctx,maxTok})=>sum+800+estimateTok(ctx)+(maxTok||2800),0);
+  const ratio=total/tpm;
+  if(ratio<1.0)return null; // safely under the per-minute limit
+  return{estimated:total,limit:tpm,ratio};
+}
+
+function showTokenWarn(info){
+  if(!info)return;
+  const el=document.getElementById('tokenWarn');
+  const msg=document.getElementById('tokenWarnMsg');
+  const sw=document.getElementById('tokenWarnSwitch');
+  if(!el||!msg)return;
+  const estK=(info.estimated/1000).toFixed(1);
+  const limK=(info.limit/1000).toFixed(0);
+  msg.textContent=`Estimated ~${estK}k tokens across 5 parallel agents — ${PROVS[curProv].name} free tier limit is ~${limK}k TPM. Rate-limit retries will trigger automatically.`;
+  // Show "Switch to Gemini" only if Groq is selected and user has a Gemini key
+  if(sw) sw.style.display=(curProv==='groq'&&gKey('gemini'))?'inline-block':'none';
+  el.style.display='flex';
+}
+
+function hideTokenWarn(){
+  const el=document.getElementById('tokenWarn');
+  if(el)el.style.display='none';
+}
+
+function switchToGemini(){
+  curProv='gemini';curModel=PROVS.gemini.def;
+  localStorage.setItem('vl_p',curProv);localStorage.setItem('vl_m',curModel);
+  refreshModal();
+  hideTokenWarn();
+  // Re-run immediately with the new provider
+  run();
+}
+
 // Parse "try again in 5.385s" / "try again in 595ms" from provider error messages
 function parseRetryAfterMs(msg){
   const s=String(msg||'');
@@ -1484,16 +1547,28 @@ async function callDomainAgent(agentName,vendor,product,domain,ctx,allowedUrls,m
 
 async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,fallbackCtx){
   document.getElementById('smsgbar').textContent='Agent 1/5: Fetching compliance & certifications…';
-  const compCtx=ctxFor(['SOC 2 SOC2 certification audit','ISO 27001 ISO 27017 ISO 27018 ISO 27701 ISO/IEC 27701 privacy information management','PCI DSS FedRAMP HIPAA CSA STAR NIST CMMC GDPR CCPA compliance framework trust'],7)||fallbackCtx.slice(0,3000);
+  const compCtx   = ctxFor(['SOC 2 SOC2 certification audit','ISO 27001 ISO 27017 ISO 27018 ISO 27701 ISO/IEC 27701 privacy information management','PCI DSS FedRAMP HIPAA CSA STAR NIST CMMC GDPR CCPA compliance framework trust'],7)||fallbackCtx.slice(0,3000);
+  const secCtx    = ctxFor(['encryption TLS MFA SSO SAML penetration testing vulnerability incident response zero trust','bug bounty SIEM WAF DDoS secure SDLC key management FIPS'],6)||fallbackCtx.slice(0,3000);
+  const privCtx   = ctxFor(['privacy policy GDPR CCPA data subject DPA subprocessors data processing agreement','data retention AI training opt out consent DPO anonymization pseudonymization'],6)||fallbackCtx.slice(0,3000);
+  const legalCtx  = ctxFor(['company legal name headquarters founded employees funding investors revenue','contract SLA MSA auto renewal termination indemnification governing law uptime support'],6)||fallbackCtx.slice(0,3000);
+  const synthCtx  = fallbackCtx.slice(0,4000);
 
-  document.getElementById('smsgbar').textContent='Running 4 parallel analysis agents…';
+  // Warn if estimated token usage exceeds this provider's per-minute limit
+  const budgetInfo=checkTokenBudget([
+    {ctx:compCtx,maxTok:2800},{ctx:secCtx,maxTok:2800},
+    {ctx:privCtx,maxTok:2800},{ctx:legalCtx,maxTok:2800},{ctx:synthCtx,maxTok:3500}
+  ]);
+  showTokenWarn(budgetInfo);
+
+  document.getElementById('smsgbar').textContent='Running 5 parallel analysis agents…';
   const [complianceR,securityR,privacyR,legalR,synthR]=await Promise.allSettled([
     callDomainAgent('compliance',vendor,product,domain,compCtx,allowedUrls,2800),
-    callDomainAgent('security',vendor,product,domain,ctxFor(['encryption TLS MFA SSO SAML penetration testing vulnerability incident response zero trust','bug bounty SIEM WAF DDoS secure SDLC key management FIPS'],6)||fallbackCtx.slice(0,3000),allowedUrls,2800),
-    callDomainAgent('privacy',vendor,product,domain,ctxFor(['privacy policy GDPR CCPA data subject DPA subprocessors data processing agreement','data retention AI training opt out consent DPO anonymization pseudonymization'],6)||fallbackCtx.slice(0,3000),allowedUrls,2800),
-    callDomainAgent('legal',vendor,product,domain,ctxFor(['company legal name headquarters founded employees funding investors revenue','contract SLA MSA auto renewal termination indemnification governing law uptime support'],6)||fallbackCtx.slice(0,3000),allowedUrls,2800),
-    callDomainAgent('synthesis',vendor,product,domain,fallbackCtx.slice(0,4000),allowedUrls,3500)
+    callDomainAgent('security',vendor,product,domain,secCtx,allowedUrls,2800),
+    callDomainAgent('privacy',vendor,product,domain,privCtx,allowedUrls,2800),
+    callDomainAgent('legal',vendor,product,domain,legalCtx,allowedUrls,2800),
+    callDomainAgent('synthesis',vendor,product,domain,synthCtx,allowedUrls,3500)
   ]);
+  hideTokenWarn();
   document.getElementById('smsgbar').textContent='Merging agent results…';
   const get=r=>r.status==='fulfilled'&&r.value?r.value:{};
   const c=get(complianceR),s=get(securityR),p=get(privacyR),l=get(legalR),syn=get(synthR);
