@@ -432,6 +432,85 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
 .cmp-yes{color:var(--g1);font-weight:500}.cmp-no{color:var(--red)}.cmp-unk{color:var(--ink4);font-family:'DM Mono',monospace;font-size:10px}
 .cmp-winner-badge{font-size:9px;font-family:'DM Mono',monospace;padding:1px 6px;border-radius:100px;border:1px solid rgba(21,163,74,.3);background:var(--gg);color:var(--g1);margin-left:4px}
 @media(max-width:640px){.comp-hdr{grid-template-columns:1fr}.comp-vs-col{flex-direction:row;padding-top:0}.comp-split{grid-template-columns:1fr}.comp-metric-row{grid-template-columns:1fr 1fr}}
+
+/* ═══════════════════════════════
+   MOBILE — ≤ 640px
+   ═══════════════════════════════ */
+@media(max-width:640px){
+  /* Topbar — hide health chips, keep brand + AI button */
+  .topbar{padding:0 14px;height:48px}
+  .tb-brand{font-size:15px}
+  #tb-health{display:none!important}
+  .tb-pill{font-size:10px;padding:5px 10px;max-width:180px}
+
+  /* Page */
+  .page{padding:14px 12px 72px}
+
+  /* Hero */
+  .hero{margin-bottom:18px}
+  .hero-ey{font-size:9px}
+
+  /* Input card */
+  .ich{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 14px}
+  .icb{padding:13px 14px}
+  .wkbar{padding:8px 14px;font-size:11px;flex-wrap:wrap}
+
+  /* Run button */
+  .rbtn{font-size:14px;padding:12px}
+
+  /* Status bar */
+  .sbar{padding:10px 13px;gap:8px}
+  .smsg{font-size:12px}
+
+  /* Scrape banner */
+  .sbn{padding:8px 12px;font-size:11px}
+  .ssrcs{margin-left:0;width:100%}
+
+  /* Scorecard — collapse to 1 col earlier */
+  .scorecard{grid-template-columns:1fr;gap:14px;padding:16px}
+  .sc-m{gap:6px;flex-wrap:wrap}
+  .ds{min-width:72px;padding:9px 10px}
+  .ds-v{font-size:15px}
+  .sc-r{flex-direction:row;align-items:center}
+
+  /* Action buttons on scorecard */
+  .sc-acts{gap:4px}
+  .cbtn{font-size:9px;padding:5px 8px}
+
+  /* Verdict */
+  .verdict{padding:11px 12px;font-size:12px}
+
+  /* Tabs */
+  .tab{font-size:11.5px;padding:10px 11px}
+  .panel{padding:14px 13px}
+
+  /* Score table — horizontal scroll */
+  .stbl{font-size:12px}
+  .stbl th,.stbl td{padding:7px 9px}
+
+  /* Info / risk grids */
+  .igrid{grid-template-columns:1fr 1fr}
+  .rtiles{grid-template-columns:1fr 1fr}
+  .doclinks{grid-template-columns:1fr 1fr}
+
+  /* Flags */
+  .flag{font-size:12px;padding:9px 11px}
+
+  /* Modals — slide up from bottom, near-full-screen */
+  .mbg{align-items:flex-end;padding:0}
+  .modal{border-radius:var(--r) var(--r) 0 0;max-width:100%!important;max-height:88vh;overflow-y:auto}
+  .mb{padding:15px}
+  .mh{padding:13px 16px}
+
+  /* AI Provider grid — 2 cols on mobile */
+  .pgrid{grid-template-columns:1fr 1fr!important}
+  .pc{padding:10px 9px}
+  .pc-name{font-size:12px}
+
+  /* Auth gate */
+  .auth-box{padding:28px 20px}
+  .auth-logo{font-size:18px}
+}
 </style>
 </head>
 <body>
@@ -1409,19 +1488,36 @@ async function fetchProxy(url){
   if(ep&&type&&type!=='unknown'){
     try{return await fetchWithCustomScraper(url,ep,type);}catch(e){}
   }
-  // 2. Race: server-side scraper (fresh UA, server IP) vs Jina AI Reader (JS-rendered)
-  //    Both attempt in parallel — take whichever returns meaningful content first.
-  const serverP = _fetchVia(`/api/scrape?url=${encodeURIComponent(url)}`,14000)
-    .then(t=>{if(!t||cleanHtml(t).length<80)throw new Error('empty');return t;});
-  const jinaP   = _fetchVia(`https://r.jina.ai/${url}`,16000)
-    .then(t=>{if(!t||t.length<80)throw new Error('empty');return t;});
-  try{
-    const result = await Promise.any([serverP, jinaP]);
-    return result;
-  }catch(e){}
-  // 3. CORS proxy fallbacks (sequential)
+  // 2. Launch server AND Jina concurrently — don't race, wait for both
+  //    so we can always pick the RICHER result, not just the faster one.
+  let serverTxt='', jinaTxt='';
+  const [serverRes, jinaRes] = await Promise.allSettled([
+    _fetchVia(`/api/scrape?url=${encodeURIComponent(url)}`,16000),
+    _fetchVia(`https://r.jina.ai/${url}`,22000),
+  ]);
+  if(serverRes.status==='fulfilled') serverTxt=serverRes.value||'';
+  if(jinaRes.status==='fulfilled')   jinaTxt=jinaRes.value||'';
+
+  const serverClean=cleanHtml(serverTxt);
+  const jinaClean=cleanHtml(jinaTxt);
+
+  // Prefer whichever returned meaningfully more content
+  if(serverClean.length>=500&&!looksLikeMissingPage(serverClean)){
+    // Server looks great — use it (Jina might still be better for markdown quality)
+    if(jinaClean.length>serverClean.length+200&&!looksLikeMissingPage(jinaClean)) return jinaTxt;
+    return serverTxt;
+  }
+  if(jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)) return jinaTxt;
+  if(serverClean.length>=150&&!looksLikeMissingPage(serverClean)) return serverTxt;
+  if(jinaClean.length>=150&&!looksLikeMissingPage(jinaClean)) return jinaTxt;
+
+  // 3. CORS proxy fallbacks
   for(const mkP of FALLBACK_PROXIES){
-    try{return await _fetchVia(mkP(url),13000);}catch(e){}
+    try{
+      const raw=await _fetchVia(mkP(url),13000);
+      const clean=cleanHtml(raw);
+      if(clean.length>=120&&!looksLikeMissingPage(clean)) return raw;
+    }catch(e){}
   }
   throw new Error('proxy_fail');
 }
@@ -1683,46 +1779,10 @@ async function scrape(vendor){
   priorityPages.forEach(p=>{const c=document.createElement('span');c.className='ssrc';c.id='ss-'+p.id;c.textContent=p.id;srcs.appendChild(c);});
   const results=[];
 
-  // Layer 1: URL pre-validation — parallel HEAD checks (much faster than sequential)
-  logCrawl('(start)','init',0,`Pre-validating ${priorityPages.length} candidate URLs for ${domain} in parallel`);
-  const checkResults=await Promise.all(priorityPages.map(pg=>headCheck(pg.url)));
-  const validPages=[];
-  priorityPages.forEach((pg,i)=>{
-    const check=checkResults[i];
-    const chip=document.getElementById('ss-'+pg.id);
-    if(check.ok){
-      validPages.push({...pg,_preHtml:check.html});
-      logCrawl(pg.url,'reachable',check.chars);
-    }else{
-      logCrawl(pg.url,'404/unavailable',0,check.note||`HTTP ${check.status}`);
-      if(chip)chip.classList.add('fail');
-      if(chip)chip.title=`HTTP ${check.status} — not found`;
-    }
-  });
-  logCrawl('(validate)','done',0,`${validPages.length}/${priorityPages.length} URLs reachable`);
-
-  // Fallback: if all head-checks failed (proxy outage, obscure domain, wrong TLD),
-  // brute-force fetch the homepage directly so the assessment isn't silently blocked.
-  if(!validPages.length&&!endpoint){
-    logCrawl(`https://${domain}`,'homepage-fallback-attempt',0,'All head-checks failed — trying direct proxy fetch');
-    try{
-      const html=await fetchProxy(`https://${domain}`);
-      const txt=cleanHtml(html);
-      if(txt.length>120&&!looksLikeMissingPage(txt)){
-        validPages.push({id:'Home',url:`https://${domain}`,_preHtml:html});
-        logCrawl(`https://${domain}`,'homepage-fallback-ok',txt.length,'Fetched despite head-check failure');
-        const chip=document.getElementById('ss-Home');
-        if(chip){chip.classList.remove('fail');chip.classList.add('done');}
-      }else{
-        logCrawl(`https://${domain}`,'homepage-fallback-empty',txt.length,'Looks like 404 or empty');
-      }
-    }catch(e){
-      logCrawl(`https://${domain}`,'homepage-fallback-failed',0,e.message||String(e));
-    }
-  }
-
-  // Fetch all valid priority pages in parallel for speed
-  await Promise.all(validPages.map(async pg=>{
+  // Single-phase: fetch all priority pages in parallel — server+Jina run concurrently
+  // inside fetchProxy, so no separate head-check round is needed.
+  logCrawl('(start)','init',0,`Fetching ${priorityPages.length} candidate URLs for ${domain} in parallel`);
+  await Promise.all(priorityPages.map(async pg=>{
     const chip=document.getElementById('ss-'+pg.id);
     try{
       const html=await fetchProxy(pg.url);
@@ -1730,16 +1790,18 @@ async function scrape(vendor){
       if(txt.length>150&&!looksLikeMissingPage(txt)){
         results.push({src:pg.id,url:pg.url,txt,links:[...extractLinks(html,pg.url),...extractMarkdownLinks(html,pg.url)],verified:true,scraper:'parallel'});
         logCrawl(pg.url,'scraped',txt.length);
-        if(chip)chip.classList.add('done');
+        if(chip){chip.classList.add('done');chip.title=`${txt.length} chars`;}
       }else{
-        logCrawl(pg.url,'empty-content',txt.length,'content too short or looks like error page');
+        logCrawl(pg.url,'empty-content',txt.length,'content too short or 404-like');
         if(chip)chip.classList.add('fail');
       }
     }catch(e){
-      logCrawl(pg.url,'fetch-error',0,e.message||String(e));
+      // 404 / not found — not an error, just not available for this vendor
+      if(!/proxy_fail|http_40[34]/.test(e.message)) logCrawl(pg.url,'fetch-error',0,e.message||String(e));
       if(chip)chip.classList.add('fail');
     }
   }));
+  logCrawl('(priority)','done',0,`${results.length}/${priorityPages.length} pages yielded content`);
 
   const discovered=discoverRelevantLinks(results,domain);
   const discoveredItems=discovered.slice(0,25).map((l,i)=>({...l,chipId:'Link'+i}));
@@ -1749,15 +1811,8 @@ async function scrape(vendor){
   });
   const discoveredToFetch=discoveredItems.filter(l=>!results.some(r=>r.url===l.url));
 
-  // Pre-validate discovered links too
-  const validDiscovered=[];
-  for(const l of discoveredToFetch){
-    const check=await headCheck(l.url);
-    if(check.ok){validDiscovered.push({...l,_preHtml:check.html});logCrawl(l.url,'discovered-reachable',check.chars);}
-    else{logCrawl(l.url,'discovered-404',0,check.note||`HTTP ${check.status}`);document.getElementById('ss-'+l.chipId)?.classList.add('fail');}
-  }
-
-  await Promise.all(validDiscovered.map(async l=>{
+  // Fetch all discovered links in parallel — same single-phase approach as priority pages
+  await Promise.all(discoveredToFetch.map(async l=>{
     if(results.some(r=>r.url===l.url))return;
     const chip=document.getElementById('ss-'+l.chipId);
     try{
@@ -1766,13 +1821,13 @@ async function scrape(vendor){
       if(txt.length>150&&!looksLikeMissingPage(txt)){
         results.push({src:l.text||'Discovered',url:l.url,txt,links:[...extractLinks(html,l.url),...extractMarkdownLinks(html,l.url)],foundOn:l.foundOn,verified:true,scraper:'parallel'});
         logCrawl(l.url,'scraped-discovered',txt.length);
-        if(chip)chip.classList.add('done');
+        if(chip){chip.classList.add('done');chip.title=`${txt.length} chars`;}
       }else{
         logCrawl(l.url,'discovered-empty',txt.length);
         if(chip)chip.classList.add('fail');
       }
     }catch(e){
-      logCrawl(l.url,'discovered-error',0,e.message||String(e));
+      if(!/proxy_fail|http_40[34]/.test(e.message)) logCrawl(l.url,'discovered-error',0,e.message||String(e));
       if(chip)chip.classList.add('fail');
     }
   }));
