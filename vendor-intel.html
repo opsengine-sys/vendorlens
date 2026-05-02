@@ -1485,30 +1485,28 @@ async function runLangExtract(results){
     const ai=priority.indexOf(a.src),bi=priority.indexOf(b.src);
     return (ai<0?99:ai)-(bi<0?99:bi);
   });
-  const pages=sorted.slice(0,4);
+  // Only process 1 page to avoid burning rate-limit tokens before the main AI agents run
+  const pg=sorted[0];
+  if(!pg||!pg.txt||pg.txt.length<200)return {};
   const fieldSources={};
-  await Promise.all(pages.map(async pg=>{
-    if(!pg.txt||pg.txt.length<200)return;
-    try{
-      const r=await fetch('/api/extract',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({text:pg.txt.slice(0,12000),provider:curProv,model_id:curModel,api_key:apiKey,source_url:pg.url}),
-        signal:AbortSignal.timeout(90000)
-      });
-      if(!r.ok)return;
-      const data=await r.json();
-      for(const ex of (data.extractions||[])){
-        if(!ex.grounded)continue;
-        const fk=(ex.attributes?.field_key)||ex.extraction_class;
-        const conf=ex.attributes?.confidence==='high'?0.92:ex.attributes?.confidence==='medium'?0.72:0.5;
-        // First grounded match per field key wins (highest-priority page)
-        if(!fieldSources[fk]){
-          fieldSources[fk]={source_url:ex.source_url||pg.url,confidence_score:conf,evidence_snippet:ex.extraction_text};
-        }
+  try{
+    const r=await fetch('/api/extract',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:pg.txt.slice(0,6000),provider:curProv,model_id:curModel,api_key:apiKey,source_url:pg.url}),
+      signal:AbortSignal.timeout(60000)
+    });
+    if(!r.ok)return {};
+    const data=await r.json();
+    for(const ex of (data.extractions||[])){
+      if(!ex.grounded)continue;
+      const fk=(ex.attributes?.field_key)||ex.extraction_class;
+      const conf=ex.attributes?.confidence==='high'?0.92:ex.attributes?.confidence==='medium'?0.72:0.5;
+      if(!fieldSources[fk]){
+        fieldSources[fk]={source_url:ex.source_url||pg.url,confidence_score:conf,evidence_snippet:ex.extraction_text};
       }
-    }catch(e){}
-  }));
+    }
+  }catch(e){}
   return fieldSources;
 }
 
@@ -1528,11 +1526,8 @@ async function assessVendorCore(vendor,product){
     'status uptime SLA support terms breach outage acquisition leadership'
   ];
   const ctx=vectorContext(reviewQueries,5)||results.slice(0,8).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,2500)}`).join('\n\n---\n\n');
-  // Run logo fetch + langextract in parallel (both non-blocking)
-  const [logoUrl,lxSources]=await Promise.all([
-    Promise.race([fetchLogo(vendor,domain),new Promise(r=>setTimeout(()=>r(null),3500))]),
-    runLangExtract(results).catch(()=>({}))
-  ]);
+  // Fetch logo in parallel with the main AI run (lightweight, no token cost)
+  const logoPromise=Promise.race([fetchLogo(vendor,domain),new Promise(r=>setTimeout(()=>r(null),3500))]);
   let parsed,aiFallbackNote=null;
   if(gKey(curProv)){
     try{parsed=await runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,srcs,ctx);}
@@ -1541,7 +1536,12 @@ async function assessVendorCore(vendor,product){
     aiFallbackNote='No AI key — evidence-only.';
     parsed=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,taskId);
   }
-  // Merge langextract grounded sources into _field_sources (fills gaps, doesn't overwrite AI sources)
+  // LangExtract runs AFTER main agents finish — no token competition
+  const [logoUrl,lxSources]=await Promise.all([
+    logoPromise,
+    runLangExtract(results).catch(()=>({}))
+  ]);
+  // Merge langextract grounded sources into _field_sources (fills gaps only, never overwrites AI sources)
   if(lxSources&&Object.keys(lxSources).length){
     parsed._field_sources=parsed._field_sources||{};
     for(const[k,v]of Object.entries(lxSources)){

@@ -122,6 +122,8 @@ def extract():
     try:
         kwargs = build_lx_kwargs(provider, model_id, api_key)
         kwargs["text_or_documents"] = text
+        kwargs["max_workers"] = 1   # prevent parallel token bursts that hit rate limits
+        kwargs["batch_length"] = 5  # smaller chunks
         result = lx.extract(**kwargs)
 
         docs = result if isinstance(result, list) else [result]
