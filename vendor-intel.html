@@ -790,10 +790,10 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
 // ═══════════════════════════════
 const PROVS = {
   groq:      { name:'Groq',          ep:'https://api.groq.com/openai/v1/chat/completions',
-               models:['llama-3.3-70b-versatile','llama-3.1-70b-versatile','mixtral-8x7b-32768','gemma2-9b-it'],
+               models:['llama-3.3-70b-versatile','llama-3.1-70b-versatile','mixtral-8x7b-32768','llama-3.1-8b-instant'],
                def:'llama-3.3-70b-versatile', fmt:'openai', proxy:false,
                note:'Free tier — fast inference. Key at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>',
-               tpmPerModel:{'llama-3.3-70b-versatile':6000,'llama-3.1-70b-versatile':6000,'mixtral-8x7b-32768':5000,'gemma2-9b-it':15000},
+               tpmPerModel:{'llama-3.3-70b-versatile':6000,'llama-3.1-70b-versatile':6000,'mixtral-8x7b-32768':5000,'llama-3.1-8b-instant':6000},
                keyPrefix:'gsk_', keyHint:'gsk_…' },
   gemini:    { name:'Google Gemini', ep:'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
                models:['gemini-2.0-flash','gemini-1.5-flash','gemini-1.5-pro','gemini-2.0-flash-lite'],
@@ -836,6 +836,8 @@ const PROV_EXTRA = {
   azure: { azureEndpoint:'', azureDeployment:'' }
 };
 let curProv  = localStorage.getItem('vl_p')  || 'groq';
+// Migrate any decommissioned Groq model saved in localStorage
+(()=>{const DEAD=['gemma2-9b-it','gemma-7b-it'];const sm=localStorage.getItem('vl_m');if(sm&&DEAD.includes(sm)){localStorage.setItem('vl_m','llama-3.1-8b-instant');}})();
 let curModel = localStorage.getItem('vl_m')  || PROVS.groq.def;
 let gData    = null;
 let gLogoUrl = null;
@@ -1845,11 +1847,11 @@ async function callAI(prompt,maxTok=7000,_attempt=0){
     // 429 rate-limit → countdown + retry with auto-model switch on Groq
     const is429=err.status===429||/rate.limit|429|quota/i.test(String(err.message));
     if(is429&&_attempt<MAX_RETRIES){
-      // On Groq: if on the slow model at attempt 2+, switch to gemma2-9b-it which has higher TPM
-      if(curProv==='groq'&&_attempt===1&&curModel!=='gemma2-9b-it'){
-        setStatusMsg(`Rate limited — switching to Groq gemma2-9b-it (higher TPM)…`);
-        curModel='gemma2-9b-it';
-        document.getElementById('msel') && (document.getElementById('msel').value='gemma2-9b-it');
+      // On Groq: if on the large model at attempt 2+, switch to llama-3.1-8b-instant (smaller, less rate-limited)
+      if(curProv==='groq'&&_attempt===1&&curModel!=='llama-3.1-8b-instant'){
+        setStatusMsg(`Rate limited — switching to Groq llama-3.1-8b-instant…`);
+        curModel='llama-3.1-8b-instant';
+        document.getElementById('msel') && (document.getElementById('msel').value='llama-3.1-8b-instant');
         await sleep(1500);
         return callAI(prompt,maxTok,_attempt+1);
       }
