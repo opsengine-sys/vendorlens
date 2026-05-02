@@ -1290,12 +1290,67 @@ async function scrape(vendor){
 // ═══════════════════════════════
 // AI CALL
 // ═══════════════════════════════
-async function callAI(prompt,maxTok=7000){
+// Parse "try again in 5.385s" / "try again in 595ms" from provider error messages
+function parseRetryAfterMs(msg){
+  const s=String(msg||'');
+  const secM=s.match(/try again in ([\d.]+)s/i);
+  if(secM)return Math.ceil(parseFloat(secM[1])*1000)+600;
+  const msM=s.match(/try again in ([\d.]+)ms/i);
+  if(msM)return Math.ceil(parseFloat(msM[1]))+600;
+  const raM=s.match(/retry.after[:\s]+([\d.]+)/i);
+  if(raM)return Math.ceil(parseFloat(raM[1])*1000)+600;
+  return null;
+}
+function setStatusMsg(t){const el=document.getElementById('smsgbar');if(el)el.textContent=t;}
+async function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function callAI(prompt,maxTok=7000,_attempt=0){
+  const MAX_RETRIES=4;
   const key=gKey(curProv); if(!key)throw new Error('No API key. Click "Configure AI Provider" in the topbar.');
   const p=PROVS[curProv]; const model=curModel||p.def;
-  if(p.fmt==='openai'){const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],temperature:.1,max_tokens:maxTok})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error');}return(await r.json()).choices?.[0]?.message?.content||'';}
-  if(p.fmt==='gemini'){const url=p.ep.replace('{model}',model)+'?key='+key;const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.1,maxOutputTokens:maxTok}})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error');}return(await r.json()).candidates?.[0]?.content?.parts?.[0]?.text||'';}
-  if(p.fmt==='anthropic'){const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],max_tokens:maxTok})});if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'API error');}return(await r.json()).content?.[0]?.text||'';}
+
+  async function doFetch(){
+    if(p.fmt==='openai'){
+      const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],temperature:.1,max_tokens:maxTok})});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw Object.assign(new Error(e.error?.message||'API error'),{status:r.status,body:e});}
+      return(await r.json()).choices?.[0]?.message?.content||'';
+    }
+    if(p.fmt==='gemini'){
+      const url=p.ep.replace('{model}',model)+'?key='+key;
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.1,maxOutputTokens:maxTok}})});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw Object.assign(new Error(e.error?.message||'API error'),{status:r.status,body:e});}
+      return(await r.json()).candidates?.[0]?.content?.parts?.[0]?.text||'';
+    }
+    if(p.fmt==='anthropic'){
+      const r=await fetch(p.ep,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],max_tokens:maxTok})});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw Object.assign(new Error(e.error?.message||'API error'),{status:r.status,body:e});}
+      return(await r.json()).content?.[0]?.text||'';
+    }
+    throw new Error('Unknown provider format');
+  }
+
+  try{
+    return await doFetch();
+  }catch(err){
+    const is429=err.status===429||/rate.limit|429|quota/i.test(err.message);
+    if(is429&&_attempt<MAX_RETRIES){
+      let waitMs=parseRetryAfterMs(err.message);
+      if(!waitMs){
+        // Exponential backoff: 3s, 7s, 15s, 30s
+        waitMs=[3000,7000,15000,30000][_attempt]||30000;
+      }
+      waitMs=Math.min(waitMs,35000);
+      const secs=Math.ceil(waitMs/1000);
+      // Countdown in status bar
+      for(let i=secs;i>0;i--){
+        setStatusMsg(`Rate limited by ${PROVS[curProv].name} — retrying in ${i}s… (attempt ${_attempt+1}/${MAX_RETRIES})`);
+        await sleep(1000);
+      }
+      setStatusMsg(`Retrying… (attempt ${_attempt+2}/${MAX_RETRIES+1})`);
+      return callAI(prompt,maxTok,_attempt+1);
+    }
+    throw err;
+  }
 }
 
 // ═══════════════════════════════
