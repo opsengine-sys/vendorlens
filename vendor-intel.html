@@ -62,6 +62,13 @@ body{font-family:'DM Sans',sans-serif;background:#eef7f2;color:#091c11;min-heigh
 .ksave{background:var(--g1);color:#fff;border:none;border-radius:var(--rxs);padding:9px 15px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s}
 .ksave:hover{background:#128f3c}
 .mnote{font-size:11px;color:var(--ink4);background:var(--s2);border:1px solid var(--e);border-radius:var(--rxs);padding:9px 12px;line-height:1.6}
+.scraper-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--e)}
+.scraper-hdr{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.scraper-hdr>span:first-child{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
+.scraper-opt{font-size:11px;font-weight:400;color:var(--ink4);text-transform:none;letter-spacing:0}
+.scraper-desc{font-size:12px;color:var(--ink3);margin:0 0 10px;line-height:1.55}
+.scraper-desc a{color:var(--g1);text-decoration:none}.scraper-desc a:hover{text-decoration:underline}
+.scraper-status{font-size:11px;font-family:'DM Mono',monospace;min-height:16px;margin-bottom:2px;transition:color .2s}
 .mnote a{color:var(--g1);text-decoration:none}.mnote a:hover{text-decoration:underline}
 .mnote code{font-family:'DM Mono',monospace;background:var(--s3);padding:0 4px;border-radius:3px;font-size:10px}
 
@@ -395,6 +402,24 @@ pre.jblk{background:var(--s2);border:1px solid var(--e);border-radius:var(--rsm)
       <div class="mrow"><label>Model</label><select id="msel"></select></div>
       <div class="krow"><input type="password" id="kInput" placeholder="Paste API key…" autocomplete="off"/><button class="ksave" onclick="saveKey()">Save</button></div>
       <div class="mnote" id="mnote"></div>
+      <div class="scraper-section">
+        <div class="scraper-hdr">
+          <span>Custom Scraper</span>
+          <span class="scraper-opt">optional · replaces Jina AI</span>
+        </div>
+        <p class="scraper-desc">Run <a href="https://github.com/unclecode/crawl4ai" target="_blank" rel="noopener">crawl4ai</a> or <a href="https://github.com/ScrapeGraphAI/Scrapegraph-ai" target="_blank" rel="noopener">ScrapeGraphAI</a> as your primary scraper. Paste the endpoint URL — type is auto-detected.</p>
+        <div class="krow" style="margin-bottom:6px">
+          <input type="text" id="scraperEpInput" placeholder="http://localhost:11235  or  https://api.scrapegraphai.com" autocomplete="off" style="font-family:'DM Mono',monospace;font-size:11px"/>
+          <button class="ksave" onclick="saveScraper()">Save</button>
+        </div>
+        <div id="scraperStatus" class="scraper-status"></div>
+        <div id="scraperKeyRow" style="display:none;margin-top:6px">
+          <div class="krow">
+            <input type="password" id="scraperKeyInput" placeholder="ScrapeGraphAI API key (SGAI-…)" autocomplete="off" style="font-size:12px"/>
+            <button class="ksave" onclick="saveScraper()">Save</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -702,6 +727,14 @@ function refreshModal(){
   document.getElementById('msel').innerHTML=PROVS[curProv].models.map(m=>`<option value="${m}" ${m===curModel?'selected':''}>${m}</option>`).join('');
   document.getElementById('kInput').value=gKey(curProv);
   document.getElementById('mnote').innerHTML=PROVS[curProv].note||'';
+  const ep=getScraperEndpoint(),type=getScraperType();
+  const epEl=document.getElementById('scraperEpInput');
+  if(epEl)epEl.value=ep;
+  if(ep&&type)updateScraperStatus(type,scraperTypeLabel(type,ep));
+  const kr=document.getElementById('scraperKeyRow');
+  if(kr)kr.style.display=type==='scrapegraphai'?'block':'none';
+  const sk=document.getElementById('scraperKeyInput');
+  if(sk)sk.value=getScrapeKey();
 }
 function saveKey(){
   const k=document.getElementById('kInput').value.trim();
@@ -714,7 +747,100 @@ function saveKey(){
 function updateTopbar(){
   const k=gKey(curProv);
   document.getElementById('provDot').className='tb-dot '+(k?'ok':'no');
-  document.getElementById('provLabel').textContent=k?`${PROVS[curProv].name} · ${curModel}`:'Configure AI Provider';
+  const ep=getScraperEndpoint(),type=getScraperType();
+  const scraperNote=ep&&type&&type!=='unknown'?` · ${scraperTypeLabel(type,ep)}`:'';
+  document.getElementById('provLabel').textContent=k?`${PROVS[curProv].name} · ${curModel}${scraperNote}`:'Configure AI Provider';
+}
+
+// ═══════════════════════════════
+// CUSTOM SCRAPER
+// ═══════════════════════════════
+function getScraperEndpoint(){return(localStorage.getItem('vl_scraper_ep')||'').replace(/\/+$/,'');}
+function getScraperType(){return localStorage.getItem('vl_scraper_type')||'';}
+function getScrapeKey(){return localStorage.getItem('vl_scraper_key')||'';}
+function scraperTypeLabel(type,ep){
+  const host=ep?new URL(ep.startsWith('http')?ep:'http://'+ep).hostname:'';
+  if(type==='crawl4ai')return`crawl4ai (${host})`;
+  if(type==='scrapegraphai')return'ScrapeGraphAI API';
+  if(type==='custom')return`Custom scraper (${host})`;
+  return'Scraper unreachable';
+}
+function updateScraperStatus(type,label){
+  const el=document.getElementById('scraperStatus');if(!el)return;
+  if(!label){el.textContent='';return;}
+  const colors={crawl4ai:'#16a34a',scrapegraphai:'#7c3aed',custom:'#d97706',detecting:'var(--ink4)',unknown:'var(--red)',cleared:'var(--ink4)'};
+  const icons={crawl4ai:'🕷',scrapegraphai:'🤖',custom:'⚙️',detecting:'⏳',unknown:'⚠️',cleared:'—'};
+  el.innerHTML=`${icons[type]||'ℹ️'} ${label}`;
+  el.style.color=colors[type]||'var(--ink3)';
+}
+async function autoDetectScraper(url){
+  if(!url)return{type:'',label:''};
+  url=url.replace(/\/+$/,'');
+  if(/scrapegraphai\.com/i.test(url))return{type:'scrapegraphai',label:'ScrapeGraphAI API — paste your SGAI key below'};
+  try{
+    const r=await fetch(url+'/health',{signal:AbortSignal.timeout(5000)});
+    if(r.ok){
+      let d={};try{d=await r.json();}catch(e){}
+      const ver=d.version||d.crawl4ai_version||'';
+      return{type:'crawl4ai',label:`crawl4ai${ver?' v'+ver:' server'} detected ✓`};
+    }
+  }catch(e){}
+  try{
+    const r=await fetch(url+'/',{signal:AbortSignal.timeout(3000)});
+    if(r.ok)return{type:'custom',label:'Custom /crawl endpoint — assuming crawl4ai format'};
+  }catch(e){}
+  return{type:'unknown',label:'Endpoint unreachable — check URL and CORS'};
+}
+async function detectAndSave(ep){
+  updateScraperStatus('detecting','Detecting scraper type…');
+  const{type,label}=await autoDetectScraper(ep);
+  localStorage.setItem('vl_scraper_type',type);
+  updateScraperStatus(type,label);
+  const kr=document.getElementById('scraperKeyRow');
+  if(kr)kr.style.display=type==='scrapegraphai'?'block':'none';
+  updateTopbar();
+}
+function saveScraper(){
+  const ep=(document.getElementById('scraperEpInput')?.value||'').trim();
+  const key=(document.getElementById('scraperKeyInput')?.value||'').trim();
+  if(key)localStorage.setItem('vl_scraper_key',key);
+  if(!ep){
+    localStorage.removeItem('vl_scraper_ep');localStorage.removeItem('vl_scraper_type');
+    updateScraperStatus('cleared','Scraper cleared — using Jina AI');updateTopbar();return;
+  }
+  localStorage.setItem('vl_scraper_ep',ep);
+  detectAndSave(ep);
+}
+async function fetchWithCustomScraper(url,endpoint,type){
+  endpoint=endpoint.replace(/\/+$/,'');
+  if(type==='crawl4ai'||type==='custom'){
+    const r=await fetch(endpoint+'/crawl',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({urls:[url],browser_config:{type:'BrowserConfig',params:{headless:true}},crawler_config:{type:'CrawlerRunConfig',params:{stream:false,word_count_threshold:10,cache_mode:'bypass'}}}),
+      signal:AbortSignal.timeout(30000)
+    });
+    if(!r.ok)throw new Error('crawl4ai_http_'+r.status);
+    const data=await r.json();
+    const items=flattenCrawl4AIResults(data);
+    const text=items[0]?.markdown||items[0]?.cleaned_html||items[0]?.html||'';
+    if(!text)throw new Error('crawl4ai_empty');
+    return text;
+  }
+  if(type==='scrapegraphai'){
+    const key=getScrapeKey();if(!key)throw new Error('ScrapeGraphAI API key not set');
+    const r=await fetch('https://api.scrapegraphai.com/v1/smartscraper',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','SGAI-APIKEY':key},
+      body:JSON.stringify({website_url:url,user_prompt:'Extract all visible text including security certifications, compliance frameworks, privacy policy, company details, legal info, and product features'}),
+      signal:AbortSignal.timeout(60000)
+    });
+    if(!r.ok)throw new Error('sgai_http_'+r.status);
+    const data=await r.json();
+    const result=data.result;
+    return typeof result==='string'?result:JSON.stringify(result||data);
+  }
+  throw new Error('unsupported_scraper_type');
 }
 
 function showScrapeError(msg,vendor){
@@ -774,6 +900,13 @@ const SCRAPE_PROXIES=[
   u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
 ];
 async function fetchProxy(url,pi=0,proxies=SCRAPE_PROXIES){
+  if(pi===0){
+    const ep=getScraperEndpoint(),type=getScraperType();
+    if(ep&&type&&type!=='unknown'&&type!==''){
+      try{return await fetchWithCustomScraper(url,ep,type);}
+      catch(e){}
+    }
+  }
   if(pi>=proxies.length)throw new Error('proxy_fail');
   try{
     const r=await fetch(proxies[pi](url),{signal:AbortSignal.timeout(15000)});
@@ -2443,7 +2576,18 @@ function cells(id,items,sources={}){
 function bfmt(v){if(v===true)return 'Yes';if(v===false)return 'No';if(typeof v==='string'){if(/^yes$/i.test(v.trim()))return 'Yes';if(/^no$/i.test(v.trim()))return 'No';}return v;}
 function hlJSON(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{if(/^"/.test(m))return /:$/.test(m)?`<span class="jk">${m}</span>`:`<span class="js">${m}</span>`;if(/true|false/.test(m))return `<span class="jb">${m}</span>`;if(/null/.test(m))return `<span class="jnil">${m}</span>`;return `<span class="jn">${m}</span>`;});}
 function copyJSON(){if(!gData)return;navigator.clipboard.writeText(JSON.stringify(gData,null,2));document.querySelectorAll('.jcp,.cbtn').forEach(b=>{if(/copy/i.test(b.textContent)){const t=b.textContent;b.textContent='Copied ✓';setTimeout(()=>b.textContent=t,1800);}});}
-document.addEventListener('DOMContentLoaded',()=>{['vInput','pInput'].forEach(id=>document.getElementById(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')run();}));});
+document.addEventListener('DOMContentLoaded',()=>{
+  ['vInput','pInput'].forEach(id=>document.getElementById(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')run();}));
+  let _scraperTimer;
+  document.addEventListener('input',e=>{
+    if(e.target.id!=='scraperEpInput')return;
+    clearTimeout(_scraperTimer);
+    const val=e.target.value.trim();
+    if(!val){updateScraperStatus('cleared','');const kr=document.getElementById('scraperKeyRow');if(kr)kr.style.display='none';return;}
+    updateScraperStatus('detecting','Detecting scraper type…');
+    _scraperTimer=setTimeout(()=>detectAndSave(val),750);
+  });
+});
 </script>
 </body>
 </html>
