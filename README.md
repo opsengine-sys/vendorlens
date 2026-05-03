@@ -47,6 +47,28 @@ An intelligent single-page application for conducting thorough vendor assessment
 - Compare side-by-side assessments of multiple vendors
 - Highlight differences in compliance posture, security, and pricing
 
+## Screenshots
+
+### Main Dashboard
+![VendorLens Dashboard](images/dashboard.png)
+*Search vendors and view compliance scores at a glance*
+
+### Real-Time Crawl Progress
+![Crawl Progress](images/crawl-progress.png)
+*Monitor live crawling of vendor pages with status indicators*
+
+### Multi-Agent Analysis in Action
+![Multi-Agent Analysis](images/multi-agent-analysis.png)
+*5 parallel AI agents analyzing vendor risk simultaneously*
+
+### Assessment Report
+![Assessment Report](images/assessment-report.png)
+*Detailed findings with evidence citations and risk scores*
+
+### Vendor Comparison
+![Vendor Comparison](images/vendor-comparison.png)
+*Side-by-side risk assessment of multiple vendors*
+
 ## Architecture
 
 ```
