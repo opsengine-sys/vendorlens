@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "-6W4I-bXzOdgoV1LynJfj"
+uri = "file://images/dashboard.png"
+type = "image"
+title = "VendorLens dashboard interface"
+
+[[generated]]
+id = "3VH5FPhfFEDiN8yvI_zX3"
+uri = "file://images/crawl-progress.png"
+type = "image"
+title = "Real-time crawl progress panel"
+
+[[generated]]
+id = "W8dEbZsNbTSzHksldP2E2"
+uri = "file://images/multi-agent-analysis.png"
+type = "image"
+title = "Multi-agent AI analysis workflow"
+
+[[generated]]
+id = "8CqCrq_AvYNGdeGGFtTKS"
+uri = "file://images/assessment-report.png"
+type = "image"
+title = "Vendor assessment report with findings"
+
+[[generated]]
+id = "R-Uw79YOBUkhgffSlXCtr"
+uri = "file://images/vendor-comparison.png"
+type = "image"
+title = "Vendor side-by-side comparison view"
