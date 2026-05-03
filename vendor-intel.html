@@ -1811,6 +1811,11 @@ function chunkText(text,maxLen=900){
   return chunks;
 }
 
+// Score a page by number of compliance/security keyword hits — used to sort results before building contexts
+function complianceScore(txt){
+  return ((txt||'').match(/soc.?2|soc.?1|iso.?27001|iso.?27017|pci.dss|hipaa|fedramp|gdpr|ccpa|encrypt|tls.1\.|mfa|sso|saml|penetration|audit.report|data.processing.agreement|subprocessor|dpa\b|privacy.policy|security.policy|zero.trust|incident.response/ig)||[]).length;
+}
+
 // Build vector store from scraped content
 function buildVectorStore(results){
   vectorStore=[];
@@ -1822,7 +1827,6 @@ function buildVectorStore(results){
       if(/\[[^\]]+\]\([^)]+\)/.test(s)&&s.replace(/\[[^\]]+\]\([^)]+\)/g,'').replace(/[\/|>\\*\d.]/g,'').trim().length<30)return false;
       return true;
     }).join('\n');
-    if(!/(soc|iso|pci|hipaa|gdpr|ccpa|security|privacy|encryption|trust|compliance|audit|mfa|tls|data)/i.test(prose)) continue;
     const chunks=chunkText(prose);
     chunks.forEach((c,i)=>{
       vectorStore.push({
@@ -2376,8 +2380,10 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
   const secCtx    = ctxFor(['encryption TLS MFA SSO SAML penetration testing vulnerability incident response zero trust','bug bounty SIEM WAF DDoS secure SDLC key management FIPS'],9)||fallbackCtx.slice(0,6000);
   const privCtx   = ctxFor(['privacy policy GDPR CCPA data subject DPA subprocessors data processing agreement','data retention AI training opt out consent DPO anonymization pseudonymization'],9)||fallbackCtx.slice(0,6000);
   const legalCtx  = ctxFor(['company legal name headquarters founded employees funding investors revenue','contract SLA MSA auto renewal termination indemnification governing law uptime support'],9)||fallbackCtx.slice(0,6000);
-  // Synthesis gets a broad, full-picture context — no topic filter, just the richest pages
-  const synthCtx  = results.slice(0,6).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,3500)}`).join('\n\n---\n\n').slice(0,14000)||fallbackCtx.slice(0,8000);
+  // Synthesis gets a broad, full-picture context — sort by compliance relevance so security/privacy
+  // pages (rendered by Jina, arrive last) appear first, not the fast-loading homepage/about shells.
+  const sortedForSynth=[...results].sort((a,b)=>complianceScore(b.txt)-complianceScore(a.txt));
+  const synthCtx  = sortedForSynth.slice(0,6).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,3500)}`).join('\n\n---\n\n').slice(0,14000)||fallbackCtx.slice(0,8000);
 
   // Detect rate-limited providers (Groq free tier = 6k TPM) and run sequentially to avoid collisions
   const tpm=getModelTpm();
@@ -2402,7 +2408,7 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
     // Per-call budget: ~400 tok URL list + ~450 tok ctx + ~400 tok prompt + 800 tok output = ~2050
     // Conservative estimate 2500 tok → delay = (2500/tpm)*62s to let bucket refill
     const seqMaxTok=800;
-    const seqCtxLen=1800;
+    const seqCtxLen=3200; // safe upper bound: ~800 tok ctx, 800 tok out, ~350 tok prompt+urls = ~1950 total < bucket refill
     const seqDelay=Math.ceil((2500/tpm)*62000); // ms to wait between agents
     // Cap URL list to 25 entries to control input token cost
     const seqAllowedUrls=allowedUrls.slice(0,25);
@@ -2539,7 +2545,9 @@ async function assessVendorCore(vendor,product){
     'data retention residency cloud provider AWS artificial intelligence training',
     'status uptime SLA support terms breach outage acquisition leadership'
   ];
-  const ctx=vectorContext(reviewQueries,5)||results.slice(0,8).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,2500)}`).join('\n\n---\n\n');
+  // Sort by compliance relevance so security/privacy pages (Jina-rendered, slow) are first in fallback
+  const resultsByRelevance=[...results].sort((a,b)=>complianceScore(b.txt)-complianceScore(a.txt));
+  const ctx=vectorContext(reviewQueries,5)||resultsByRelevance.slice(0,8).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,2500)}`).join('\n\n---\n\n');
   // Fetch logo in parallel with the main AI run (lightweight, no token cost)
   const logoPromise=Promise.race([fetchLogo(vendor,domain),new Promise(r=>setTimeout(()=>r(null),3500))]);
   let parsed,aiFallbackNote=null;
