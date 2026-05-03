@@ -1694,9 +1694,16 @@ async function fetchProxy(url){
   const serverClean=cleanHtml(serverTxt);
   const jinaClean=cleanHtml(jinaTxt);
 
-  // Prefer whichever returned meaningfully more content
+  // Jina uses a headless browser — if it returned non-HTML content (markdown/plain text)
+  // the page was fully rendered and content extracted. Strongly prefer this over raw server
+  // HTML which is often a JS app shell with no real text content.
+  const jinaIsRendered=jinaTxt.length>0&&!/<html[\s>]|<body[\s>]/i.test(jinaTxt.slice(0,300));
+  if(jinaIsRendered&&jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)){
+    _lastFetchSrc[url]='jina'; return jinaTxt;
+  }
+  // Jina returned HTML or failed — fall back to server, but prefer jina if richer
   if(serverClean.length>=500&&!looksLikeMissingPage(serverClean)){
-    if(jinaClean.length>serverClean.length+200&&!looksLikeMissingPage(jinaClean)){
+    if(jinaClean.length>serverClean.length+500&&!looksLikeMissingPage(jinaClean)){
       _lastFetchSrc[url]='jina'; return jinaTxt;
     }
     _lastFetchSrc[url]='server'; return serverTxt;
@@ -1738,6 +1745,16 @@ function cleanHtml(html){
     .replace(/--[\w-]+\s*:\s*[^;}{]+;/g,' ')
     .replace(/:[a-z-]+\s*\{[^}]*\}/g,' ')
     .replace(/#[a-zA-Z][\w-]*\s*\{[^}]*\}/g,' ')
+    // Strip navigation-heavy lines: if a line contains markdown links AND stripping those
+    // links leaves <30 non-whitespace chars, it's a nav item (not prose). Handles
+    // single-link lines, multi-link lines, and lines like "[A](...) or [B](...)"
+    .replace(/^.*$/gm,l=>{
+      if(!/\[[^\]]+\]\([^)]+\)/.test(l))return l;
+      const rest=l.replace(/\[[^\]]+\]\([^)]+\)/g,'').replace(/[/|>\\*\d.]/g,'').trim();
+      return rest.length<30?'':l;
+    })
+    // Strip Jina metadata headers
+    .replace(/^(Title|URL Source|Markdown Content):.*$/gm,'')
     .replace(/\s{3,}/g,'\n\n')
     .trim()
     .slice(0,25000);
