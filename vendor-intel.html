@@ -1733,9 +1733,11 @@ function cleanHtml(html){
     .replace(/&nbsp;/g,' ')
     .replace(/&amp;/g,'&')
     // Strip CSS-in-JS / inline style blocks that survive tag removal (common in NextJS/React SSR)
+    .replace(/@[\w-]+[^{]*\{[^}]*\}/g,' ')
     .replace(/\.[a-zA-Z][\w-]*(?:\s*,\s*\.[a-zA-Z][\w-]*)*\s*\{[^}]*\}/g,' ')
     .replace(/--[\w-]+\s*:\s*[^;}{]+;/g,' ')
     .replace(/:[a-z-]+\s*\{[^}]*\}/g,' ')
+    .replace(/#[a-zA-Z][\w-]*\s*\{[^}]*\}/g,' ')
     .replace(/\s{3,}/g,'\n\n')
     .trim()
     .slice(0,25000);
@@ -2377,27 +2379,43 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
   if(runSeq){
     // Sequential execution for rate-limited providers — each agent gets the full TPM budget
     document.getElementById('smsgbar').textContent='Running analysis agents (sequential mode for rate limit)…';
+    // For rate-limited providers: smaller context + output, capped URL list, proper TPM delays
+    // Per-call budget: ~400 tok URL list + ~450 tok ctx + ~400 tok prompt + 800 tok output = ~2050
+    // Conservative estimate 2500 tok → delay = (2500/tpm)*62s to let bucket refill
+    const seqMaxTok=800;
+    const seqCtxLen=1800;
+    const seqDelay=Math.ceil((2500/tpm)*62000); // ms to wait between agents
+    // Cap URL list to 25 entries to control input token cost
+    const seqAllowedUrls=allowedUrls.slice(0,25);
+    const seqCtx=c=>c.slice(0,seqCtxLen)||fallbackCtx.slice(0,seqCtxLen);
     const agentDefs=[
-      {name:'compliance',ctx:compCtx,maxTok:2200},
-      {name:'security',  ctx:secCtx, maxTok:2200},
-      {name:'privacy',   ctx:privCtx,maxTok:2200},
-      {name:'legal',     ctx:legalCtx,maxTok:2200},
-      {name:'synthesis', ctx:synthCtx,maxTok:2800},
+      {name:'compliance',ctx:seqCtx(compCtx), maxTok:seqMaxTok, urls:seqAllowedUrls},
+      {name:'security',  ctx:seqCtx(secCtx),  maxTok:seqMaxTok, urls:seqAllowedUrls},
+      {name:'privacy',   ctx:seqCtx(privCtx), maxTok:seqMaxTok, urls:seqAllowedUrls},
+      {name:'legal',     ctx:seqCtx(legalCtx),maxTok:seqMaxTok, urls:seqAllowedUrls},
+      // Synthesis: compact prompt, 1800 tok output — enough for scores+verdict+flags+vendor_log
+      {name:'synthesis', ctx:seqCtx(synthCtx),maxTok:1800,       urls:seqAllowedUrls},
     ];
     const settled=[];
     for(const ag of agentDefs){
       CrawlPanel.setAgent(ag.name,'running');
       setStatusMsg(`AI: analyzing ${ag.name}…`);
       try{
-        const v=await callDomainAgent(ag.name,vendor,product,domain,ag.ctx,allowedUrls,ag.maxTok);
+        const v=await callDomainAgent(ag.name,vendor,product,domain,ag.ctx,ag.urls,ag.maxTok);
         settled.push({status:'fulfilled',value:v});
         CrawlPanel.setAgent(ag.name,'done');
       }catch(e){
         settled.push({status:'rejected',reason:e});
         CrawlPanel.setAgent(ag.name,'done');
       }
-      // Small pause between agents to let TPM bucket refill slightly
-      if(settled.length<agentDefs.length) await sleep(800);
+      // Wait for TPM bucket to refill before firing next agent
+      if(settled.length<agentDefs.length){
+        const waitSec=Math.ceil(seqDelay/1000);
+        for(let w=waitSec;w>0;w--){
+          setStatusMsg(`Rate-limit pause: next agent in ${w}s…`);
+          await sleep(1000);
+        }
+      }
     }
     [complianceR,securityR,privacyR,legalR,synthR]=settled;
   }else{
