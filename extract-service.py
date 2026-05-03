@@ -130,15 +130,18 @@ def extract():
         extractions = []
         for doc in docs:
             for ex in (doc.extractions or []):
-                grounded = getattr(ex, "char_interval", None) is not None
+                interval = getattr(ex, "char_interval", None)
+                grounded = interval is not None
+                start = getattr(interval, "start", None) if grounded else None
+                end = getattr(interval, "end", None) if grounded else None
                 extractions.append({
                     "extraction_class": ex.extraction_class,
                     "extraction_text":  ex.extraction_text,
                     "attributes":       dict(ex.attributes or {}),
                     "grounded":         grounded,
                     "source_url":       source_url,
-                    "char_start":       ex.char_interval[0] if grounded else None,
-                    "char_end":         ex.char_interval[1] if grounded else None,
+                    "char_start":       start,
+                    "char_end":         end,
                 })
 
         return jsonify({"extractions": extractions, "source_url": source_url})
