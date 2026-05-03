@@ -2377,6 +2377,14 @@ function mergeAssessment(base, fallback){
   return out;
 }
 
+function mergeDeepPrefer(a,b){
+  const out=structuredClone(a||{});
+  for(const [k,v] of Object.entries(b||{})){
+    if(out[k]===undefined||out[k]===null||out[k]==='NA'||out[k]==='Unknown') out[k]=v;
+  }
+  return out;
+}
+
 function domainPrompt(agentName,vendor,product,domain,ctx,allowedUrls){
   const urlList=allowedUrls.map(u=>'- '+u).join('\n')||'(none confirmed reachable)';
   const base=`VENDOR: "${vendor}" (domain: ${domain})\nPRODUCT: "${product}"\n\nCONFIRMED REACHABLE URLs ONLY (do NOT invent any URL not on this list):\n${urlList}\n\nWEB-SCRAPED CONTENT:\n${ctx||'(no content scraped)'}\n\nRULES: Only use URLs from the list above. If a URL is not on the list, set that field to null. Return ONLY valid JSON in \`\`\`json...\`\`\`.\n\nFIELD SOURCES: For every non-null field you return, add a matching entry to _field_sources keyed by the field name. Each entry: {"source_url":"<url from allowed list, or null>","confidence_score":<0.0-1.0>,"evidence_snippet":"<exact verbatim phrase from scraped content>"}. Confidence guide: 0.9+=direct quote from page; 0.7-0.89=clearly stated, slightly paraphrased; 0.5-0.69=inferred from related context; below 0.5=best guess with no direct evidence.`;
@@ -2490,19 +2498,18 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
   const c=get(complianceR),s=get(securityR),p=get(privacyR),l=get(legalR),syn=get(synthR);
   const mergeDocs=(...objs)=>{const out={};objs.forEach(o=>{if(o?.docs)Object.entries(o.docs).forEach(([k,v])=>{if(v&&!out[k])out[k]=v;});});return out;};
   const evidence=buildEvidenceOnlyAssessment(vendor,product,domain,results,allowedUrls,makeTaskId());
-  return{
-    ...mergeAssessment(evidence, syn),
-    docs:mergeDocs(evidence,syn,c,s,p,l),
-    legal_financial:mergeObj(evidence.legal_financial,l.legal_financial),
-    compliance:mergeObj(evidence.compliance,c.compliance),
-    security:mergeObj(evidence.security,s.security),
-    privacy_data:mergeObj(evidence.privacy_data,p.privacy_data),
-    access_risk:mergeObj(evidence.access_risk,p.access_risk),
-    operational:mergeObj(evidence.operational,l.operational),
-    product:mergeObj(evidence.product,syn.product),
-    onetrust_procurement_notes:syn.onetrust_procurement_notes||evidence.onetrust_procurement_notes||null,
-    _field_sources:{...(evidence._field_sources||{}),...(c._field_sources||{}),...(s._field_sources||{}),...(p._field_sources||{}),...(l._field_sources||{}),...(syn._field_sources||{})}
-  };
+  const merged=mergeAssessment(syn, evidence);
+  merged.docs=mergeDocs(evidence,syn,c,s,p,l);
+  merged.legal_financial=mergeDeepPrefer(evidence.legal_financial,mergeDeepPrefer(l.legal_financial,syn.legal_financial));
+  merged.compliance=mergeDeepPrefer(evidence.compliance,mergeDeepPrefer(c.compliance,syn.compliance));
+  merged.security=mergeDeepPrefer(evidence.security,mergeDeepPrefer(s.security,syn.security));
+  merged.privacy_data=mergeDeepPrefer(evidence.privacy_data,mergeDeepPrefer(p.privacy_data,syn.privacy_data));
+  merged.access_risk=mergeDeepPrefer(evidence.access_risk,mergeDeepPrefer(p.access_risk,syn.access_risk));
+  merged.operational=mergeDeepPrefer(evidence.operational,mergeDeepPrefer(l.operational,syn.operational));
+  merged.product=mergeDeepPrefer(evidence.product,syn.product);
+  merged.onetrust_procurement_notes=syn.onetrust_procurement_notes||evidence.onetrust_procurement_notes||null;
+  merged._field_sources={...(evidence._field_sources||{}),...(c._field_sources||{}),...(s._field_sources||{}),...(p._field_sources||{}),...(l._field_sources||{}),...(syn._field_sources||{})};
+  return merged;
 }
 
 // ═══════════════════════════════
