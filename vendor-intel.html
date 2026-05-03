@@ -1693,20 +1693,14 @@ async function fetchProxy(url){
 
   const serverClean=cleanHtml(serverTxt);
   const jinaClean=cleanHtml(jinaTxt);
-
-  // Jina uses a headless browser — if it returned non-HTML content (markdown/plain text)
-  // the page was fully rendered and content extracted. Strongly prefer this over raw server
-  // HTML which is often a JS app shell with no real text content.
   const jinaIsRendered=jinaTxt.length>0&&!/<html[\s>]|<body[\s>]/i.test(jinaTxt.slice(0,300));
+  const serverLooksShell=/<script[^>]+src=|id=["']root["']|id=["']__next["']|data-reactroot|frontend\.[\w-]+\.js/i.test(serverTxt.slice(0,5000));
+
   if(jinaIsRendered&&jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)){
     _lastFetchSrc[url]='jina'; return jinaTxt;
   }
-  // Jina returned HTML or failed — fall back to server, but prefer jina if richer
-  if(serverClean.length>=500&&!looksLikeMissingPage(serverClean)){
-    if(jinaClean.length>serverClean.length+500&&!looksLikeMissingPage(jinaClean)){
-      _lastFetchSrc[url]='jina'; return jinaTxt;
-    }
-    _lastFetchSrc[url]='server'; return serverTxt;
+  if(serverLooksShell&&jinaClean.length>=200&&!looksLikeMissingPage(jinaClean)){
+    _lastFetchSrc[url]='jina'; return jinaTxt;
   }
   if(jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)){_lastFetchSrc[url]='jina';return jinaTxt;}
   if(serverClean.length>=150&&!looksLikeMissingPage(serverClean)){_lastFetchSrc[url]='server';return serverTxt;}
@@ -1821,7 +1815,15 @@ function chunkText(text,maxLen=900){
 function buildVectorStore(results){
   vectorStore=[];
   for(const r of results){
-    const chunks=chunkText(r.txt);
+    const prose=(r.txt||'').split('\n').filter(l=>{
+      const s=l.trim();
+      if(!s)return false;
+      if(/^(\d+\.|\*|\-)\s*$/.test(s))return false;
+      if(/\[[^\]]+\]\([^)]+\)/.test(s)&&s.replace(/\[[^\]]+\]\([^)]+\)/g,'').replace(/[\/|>\\*\d.]/g,'').trim().length<30)return false;
+      return true;
+    }).join('\n');
+    if(!/(soc|iso|pci|hipaa|gdpr|ccpa|security|privacy|encryption|trust|compliance|audit|mfa|tls|data)/i.test(prose)) continue;
+    const chunks=chunkText(prose);
     chunks.forEach((c,i)=>{
       vectorStore.push({
         src:r.src,url:r.url,chunkId:i,text:c,
@@ -1846,7 +1848,7 @@ function vectorContext(queries,topK=6){
     const k=hit.url+'#'+hit.chunkId;
     if(seen.has(k))return;
     seen.add(k);
-    out.push(`SOURCE: ${hit.src} (${hit.url})\n${hit.text.slice(0,1100)}`);
+    out.push(`SOURCE: ${hit.src} (${hit.url})\n${hit.text.slice(0,1400)}`);
   }));
   return out.join('\n\n---\n\n');
 }
