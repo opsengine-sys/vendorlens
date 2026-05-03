@@ -1681,32 +1681,27 @@ async function fetchProxy(url){
   if(ep&&type&&type!=='unknown'){
     try{return await fetchWithCustomScraper(url,ep,type);}catch(e){}
   }
-  // 2. Launch server AND Jina concurrently — don't race, wait for both
-  //    so we can always pick the RICHER result, not just the faster one.
-  let serverTxt='', jinaTxt='';
-  const [serverRes, jinaRes] = await Promise.allSettled([
-    _fetchVia(`/api/scrape?url=${encodeURIComponent(url)}`,16000),
-    _fetchVia(`https://r.jina.ai/${url}`,22000),
-  ]);
-  if(serverRes.status==='fulfilled') serverTxt=serverRes.value||'';
-  if(jinaRes.status==='fulfilled')   jinaTxt=jinaRes.value||'';
+  // 2. Try Jina first — it uses headless browser to render JS-heavy sites
+  try{
+    const jinaTxt=await _fetchVia(`https://r.jina.ai/${url}`,22000);
+    const jinaClean=cleanHtml(jinaTxt);
+    if(jinaClean.length>=200&&!looksLikeMissingPage(jinaClean)){
+      _lastFetchSrc[url]='jina';
+      return jinaTxt;
+    }
+  }catch(e){}
+  
+  // 3. Fall back to server fetch
+  try{
+    const serverTxt=await _fetchVia(`/api/scrape?url=${encodeURIComponent(url)}`,16000);
+    const serverClean=cleanHtml(serverTxt);
+    if(serverClean.length>=150&&!looksLikeMissingPage(serverClean)){
+      _lastFetchSrc[url]='server';
+      return serverTxt;
+    }
+  }catch(e){}
 
-  const serverClean=cleanHtml(serverTxt);
-  const jinaClean=cleanHtml(jinaTxt);
-  const jinaIsRendered=jinaTxt.length>0&&!/<html[\s>]|<body[\s>]/i.test(jinaTxt.slice(0,300));
-  const serverLooksShell=/<script[^>]+src=|id=["']root["']|id=["']__next["']|data-reactroot|frontend\.[\w-]+\.js/i.test(serverTxt.slice(0,5000));
-
-  if(jinaIsRendered&&jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)){
-    _lastFetchSrc[url]='jina'; return jinaTxt;
-  }
-  if(serverLooksShell&&jinaClean.length>=200&&!looksLikeMissingPage(jinaClean)){
-    _lastFetchSrc[url]='jina'; return jinaTxt;
-  }
-  if(jinaClean.length>=300&&!looksLikeMissingPage(jinaClean)){_lastFetchSrc[url]='jina';return jinaTxt;}
-  if(serverClean.length>=150&&!looksLikeMissingPage(serverClean)){_lastFetchSrc[url]='server';return serverTxt;}
-  if(jinaClean.length>=150&&!looksLikeMissingPage(jinaClean)){_lastFetchSrc[url]='jina';return jinaTxt;}
-
-  // 3. CORS proxy fallbacks
+  // 4. CORS proxy fallbacks
   for(const mkP of FALLBACK_PROXIES){
     try{
       const raw=await _fetchVia(mkP(url),13000);
@@ -1720,38 +1715,30 @@ function looksLikeMissingPage(text){
   return /\b(404|page not found|not found|does not exist|we can't find|cannot be found)\b/i.test((text||'').slice(0,2000));
 }
 function cleanHtml(html){
-  return (html||'')
-    .replace(/<video[\s\S]*?<\/video>/gi,' ')
-    .replace(/<audio[\s\S]*?<\/audio>/gi,' ')
-    .replace(/<picture[\s\S]*?<\/picture>/gi,' ')
-    .replace(/\s(?:alt|title|aria-label)=["']([^"']+)["']/gi,' $1 ')
+  let text=(html||'')
     .replace(/<script[\s\S]*?<\/script>/gi,'')
     .replace(/<style[\s\S]*?<\/style>/gi,'')
-    .replace(/<nav[\s\S]*?<\/nav>/gi,'')
-    .replace(/<footer[\s\S]*?<\/footer>/gi,'')
     .replace(/<[^>]+>/g,' ')
-    .replace(/your browser does not support the video tag\.?/gi,' ')
     .replace(/&nbsp;/g,' ')
     .replace(/&amp;/g,'&')
-    // Strip CSS-in-JS / inline style blocks that survive tag removal (common in NextJS/React SSR)
-    .replace(/@[\w-]+[^{]*\{[^}]*\}/g,' ')
-    .replace(/\.[a-zA-Z][\w-]*(?:\s*,\s*\.[a-zA-Z][\w-]*)*\s*\{[^}]*\}/g,' ')
-    .replace(/--[\w-]+\s*:\s*[^;}{]+;/g,' ')
-    .replace(/:[a-z-]+\s*\{[^}]*\}/g,' ')
-    .replace(/#[a-zA-Z][\w-]*\s*\{[^}]*\}/g,' ')
-    // Strip navigation-heavy lines: if a line contains markdown links AND stripping those
-    // links leaves <30 non-whitespace chars, it's a nav item (not prose). Handles
-    // single-link lines, multi-link lines, and lines like "[A](...) or [B](...)"
-    .replace(/^.*$/gm,l=>{
-      if(!/\[[^\]]+\]\([^)]+\)/.test(l))return l;
-      const rest=l.replace(/\[[^\]]+\]\([^)]+\)/g,'').replace(/[/|>\\*\d.]/g,'').trim();
-      return rest.length<30?'':l;
-    })
-    // Strip Jina metadata headers
-    .replace(/^(Title|URL Source|Markdown Content):.*$/gm,'')
-    .replace(/\s{3,}/g,'\n\n')
-    .trim()
-    .slice(0,25000);
+    .replace(/&lt;/g,'<')
+    .replace(/&gt;/g,'>')
+    .replace(/\s{2,}/g,' ');
+  
+  // Remove lines that are purely navigation (markdown links with <30 chars after removing link syntax)
+  text=text.split('\n').map(l=>{
+    if(!/\[[^\]]+\]\([^)]+\)/.test(l))return l;
+    const stripped=l.replace(/\[[^\]]+\]\([^)]+\)/g,'').replace(/[/|>\\*\d.]/g,'').trim();
+    return stripped.length<20?'':l;
+  }).join('\n');
+  
+  // Remove Jina metadata headers
+  text=text.replace(/^(Title|URL|Markdown Content|Source):\s*.*/gm,'');
+  
+  // Normalize whitespace
+  text=text.replace(/\n{3,}/g,'\n\n').trim();
+  
+  return text.slice(0,25000);
 }
 function absolutizeUrl(href,base){
   if(!href||/^(mailto:|tel:|javascript:|#)/i.test(href))return null;
@@ -2414,10 +2401,9 @@ async function runMultiAgentAnalysis(vendor,product,domain,results,allowedUrls,s
   const secCtx    = ctxFor(['encryption TLS MFA SSO SAML penetration testing vulnerability incident response zero trust','bug bounty SIEM WAF DDoS secure SDLC key management FIPS'],9)||fallbackCtx.slice(0,6000);
   const privCtx   = ctxFor(['privacy policy GDPR CCPA data subject DPA subprocessors data processing agreement','data retention AI training opt out consent DPO anonymization pseudonymization'],9)||fallbackCtx.slice(0,6000);
   const legalCtx  = ctxFor(['company legal name headquarters founded employees funding investors revenue','contract SLA MSA auto renewal termination indemnification governing law uptime support'],9)||fallbackCtx.slice(0,6000);
-  // Synthesis gets a broad, full-picture context — sort by compliance relevance so security/privacy
-  // pages (rendered by Jina, arrive last) appear first, not the fast-loading homepage/about shells.
-  const sortedForSynth=[...results].sort((a,b)=>complianceScore(b.txt)-complianceScore(a.txt));
-  const synthCtx  = sortedForSynth.slice(0,6).map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt.slice(0,3500)}`).join('\n\n---\n\n').slice(0,14000)||fallbackCtx.slice(0,8000);
+  // Synthesis gets ALL scraped content (up to 20k chars) — don't drop pages based on compliance score.
+  // Just concatenate results in order, taking full text from each page.
+  const synthCtx  = results.map(r=>`=== ${r.src} (${r.url}) ===\n${r.txt}`).join('\n\n---\n\n').slice(0,20000)||fallbackCtx.slice(0,8000);
 
   // Detect rate-limited providers (Groq free tier = 6k TPM) and run sequentially to avoid collisions
   const tpm=getModelTpm();
