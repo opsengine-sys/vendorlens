@@ -49,9 +49,9 @@ An intelligent single-page application for conducting thorough vendor assessment
 
 ## Screenshots
 
-### Main Dashboard
-![VendorLens Dashboard](images/dashboard.png)
-*Search vendors and view compliance scores at a glance*
+### Home Page — Vendor Research
+![VendorLens Home](images/home-page.png)
+*Enter a vendor name or domain and product/service to begin assessment*
 
 ### Real-Time Crawl Progress
 ![Crawl Progress](images/crawl-progress.png)
