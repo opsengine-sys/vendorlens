@@ -2,6 +2,8 @@
 
 An intelligent single-page application for conducting thorough vendor assessments across legal, compliance, security, privacy, financial, and operational dimensions. VendorLens crawls public vendor pages, extracts structured evidence using AI and grounded citations, and delivers comprehensive procurement risk reports.
 
+![Under Development](https://img.shields.io/badge/status-under%20development-orange?style=flat-square)
+
 ## Features
 
 ✨ **Multi-Provider AI Support**
